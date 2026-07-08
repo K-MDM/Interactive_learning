@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { 
   ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader, 
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
-  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus
+  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit
 } from 'lucide-react';
 
 export default function AdminConsole() {
@@ -28,6 +28,11 @@ export default function AdminConsole() {
     plans: [],
     tax_percent: 18
   });
+
+  // Plans Modal States
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [isNewPlan, setIsNewPlan] = useState(false);
   const [downloads, setDownloads] = useState({
     android: '',
     macos: '',
@@ -141,6 +146,81 @@ export default function AdminConsole() {
       setMessage({ type: 'success', text: `Demo access updated.` });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to toggle demo status' });
+    }
+  };
+
+  // Save Plan modal handler (creates or updates a plan and saves to DB)
+  const handleSavePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlan) return;
+    if (isNewPlan && !editingPlan.id.trim()) {
+      setMessage({ type: 'error', text: 'Plan ID is required for new plans.' });
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      let updatedPlans = [];
+      if (isNewPlan) {
+        // Check for duplicate ID
+        if (pricing.plans.some((p: any) => p.id.toLowerCase() === editingPlan.id.trim().toLowerCase())) {
+          throw new Error(`Plan with ID '${editingPlan.id}' already exists.`);
+        }
+        updatedPlans = [...pricing.plans, { ...editingPlan, id: editingPlan.id.trim() }];
+      } else {
+        updatedPlans = pricing.plans.map((p: any) => p.id === editingPlan.id ? editingPlan : p);
+      }
+
+      const res = await fetch('/api/admin/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plans: updatedPlans })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setPricing({ ...pricing, plans: updatedPlans });
+      setIsPlanModalOpen(false);
+      setEditingPlan(null);
+      setMessage({ type: 'success', text: `Plan '${editingPlan.name}' saved successfully.` });
+      
+      // Reload administrative console stats/metrics
+      loadAdminData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save subscription plan' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete Plan handler (deletes plan from local state and DB)
+  const handleDeletePlan = async (planId: string, planName: string) => {
+    if (!confirm(`Are you sure you want to delete the plan "${planName}"?`)) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const updatedPlans = pricing.plans.filter((p: any) => p.id !== planId);
+      const res = await fetch('/api/admin/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plans: updatedPlans })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setPricing({ ...pricing, plans: updatedPlans });
+      setMessage({ type: 'success', text: `Plan '${planName}' deleted.` });
+      
+      // Reload administrative console stats/metrics
+      loadAdminData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to delete plan' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -647,152 +727,283 @@ export default function AdminConsole() {
 
           {/* TAB: SUBSCRIPTION PLANS */}
           {activeTab === 'plans' && (
-            <form onSubmit={handleSaveSettings} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-6 max-w-4xl">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
+                <div>
                   <h3 className="text-base font-bold text-slate-900 font-display">Manage Subscription Plans</h3>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const newPlan = {
-                        id: `plan_${self.crypto.randomUUID()}`,
-                        name: 'New Custom Plan',
-                        duration_months: 1,
-                        price_usd: 19.99,
-                        discount_percent: 0,
-                        subtext: 'Billed monthly/yearly'
-                      };
-                      setPricing({
-                        ...pricing,
-                        plans: [...(pricing.plans || []), newPlan]
-                      });
-                    }}
-                    className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 transition-all"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Add New Plan</span>
-                  </button>
+                  <p className="text-slate-500 text-xs mt-0.5">Configure available purchase options displayed to students during checkout.</p>
                 </div>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setEditingPlan({
+                      id: '',
+                      name: '',
+                      duration_months: 1,
+                      price_usd: 19.99,
+                      discount_percent: 0,
+                      subtext: ''
+                    });
+                    setIsNewPlan(true);
+                    setIsPlanModalOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-[0.98]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add New Plan</span>
+                </button>
+              </div>
 
-                {/* Plans Grid */}
-                <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2">
-                  {(!pricing.plans || pricing.plans.length === 0) ? (
-                    <div className="bg-slate-50 border border-slate-150 p-6 text-center rounded-xl text-slate-450 text-xs">
-                      No active subscription plans defined. Add one above.
-                    </div>
-                  ) : (
-                    pricing.plans.map((plan: any, idx: number) => (
-                      <div key={plan.id} className="bg-slate-50/50 border border-slate-200 rounded-xl p-4 space-y-3 relative">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Plan #{idx + 1}</span>
+              {/* Plans Card Grid */}
+              {(!pricing.plans || pricing.plans.length === 0) ? (
+                <div className="bg-white border border-slate-200 p-12 text-center rounded-2xl shadow-sm">
+                  <p className="text-slate-550 font-semibold">No subscription plans found.</p>
+                  <p className="text-slate-400 text-xs mt-1">Create one to enable premium access pricing options.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pricing.plans.map((plan: any) => (
+                    <div 
+                      key={plan.id} 
+                      className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-200 shadow-sm relative overflow-hidden"
+                    >
+                      {/* Top Bar with Plan Identifier and Edit/Delete controls */}
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">ID: {plan.id}</span>
+                          <span className="bg-blue-50 border border-blue-100 text-blue-600 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            {plan.duration_months} {plan.duration_months === 1 ? 'Month' : 'Months'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => {
-                              setPricing({
-                                ...pricing,
-                                plans: pricing.plans.filter((p: any) => p.id !== plan.id)
-                              });
+                              setEditingPlan({ ...plan });
+                              setIsNewPlan(false);
+                              setIsPlanModalOpen(true);
                             }}
-                            className="text-rose-600 hover:text-rose-500 text-xs font-semibold hover:underline"
+                            className="p-1.5 bg-slate-50 hover:bg-blue-50 text-slate-550 hover:text-blue-600 rounded-lg border border-slate-150 transition-colors cursor-pointer"
+                            title="Edit Plan"
                           >
-                            Delete Plan
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePlan(plan.id, plan.name)}
+                            className="p-1.5 bg-slate-50 hover:bg-rose-50 text-slate-550 hover:text-rose-600 rounded-lg border border-slate-150 transition-colors cursor-pointer"
+                            title="Delete Plan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                      </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Plan ID (Auto Generated)</label>
-                            <input
-                              type="text"
-                              value={plan.id}
-                              readOnly
-                              disabled
-                              className="w-full bg-slate-150 border border-slate-200 rounded px-2.5 py-1.5 text-xs text-slate-500 focus:outline-none cursor-not-allowed font-mono"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Plan Name</label>
-                            <input
-                              type="text"
-                              value={plan.name}
-                              onChange={(e) => {
-                                const updated = [...pricing.plans];
-                                updated[idx].name = e.target.value;
-                                setPricing({ ...pricing, plans: updated });
-                              }}
-                              required
-                              className="w-full bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Duration (Months)</label>
-                            <input
-                              type="number" min="1"
-                              value={plan.duration_months}
-                              onChange={(e) => {
-                                const updated = [...pricing.plans];
-                                updated[idx].duration_months = parseInt(e.target.value, 10) || 1;
-                                setPricing({ ...pricing, plans: updated });
-                              }}
-                              required
-                              className="w-full bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Base Price (USD)</label>
-                            <input
-                              type="number" step="0.01" min="0"
-                              value={plan.price_usd}
-                              onChange={(e) => {
-                                const updated = [...pricing.plans];
-                                updated[idx].price_usd = parseFloat(e.target.value) || 0;
-                                setPricing({ ...pricing, plans: updated });
-                              }}
-                              required
-                              className="w-full bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Plan Discount (%)</label>
-                            <input
-                              type="number" min="0" max="100"
-                              value={plan.discount_percent || 0}
-                              onChange={(e) => {
-                                const updated = [...pricing.plans];
-                                updated[idx].discount_percent = parseInt(e.target.value, 10) || 0;
-                                setPricing({ ...pricing, plans: updated });
-                              }}
-                              className="w-full bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Subtext / Description</label>
-                            <input
-                              type="text"
-                              value={plan.subtext || ''}
-                              onChange={(e) => {
-                                const updated = [...pricing.plans];
-                                updated[idx].subtext = e.target.value;
-                                setPricing({ ...pricing, plans: updated });
-                              }}
-                              className="w-full bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
+                      {/* Card Content body */}
+                      <div className="space-y-4 flex-1 flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <h4 className="font-extrabold text-slate-900 text-lg leading-tight font-display line-clamp-1" title={plan.name}>
+                            {plan.name}
+                          </h4>
+                          {plan.subtext && (
+                            <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">
+                              {plan.subtext}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="pt-4 flex items-baseline gap-2 border-t border-slate-100 mt-4">
+                          <span className="text-3xl font-black text-slate-900 font-display">
+                            ${Number(plan.price_usd).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                            USD
+                          </span>
+                          {plan.discount_percent > 0 && (
+                            <span className="ml-auto bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide">
+                              {plan.discount_percent}% OFF
+                            </span>
+                          )}
                         </div>
                       </div>
-                    ))
-                  )}
+                    </div>
+                  ))}
+                  
+                  {/* Dashed Add New Plan Card Placeholder */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingPlan({
+                        id: '',
+                        name: '',
+                        duration_months: 1,
+                        price_usd: 19.99,
+                        discount_percent: 0,
+                        subtext: ''
+                      });
+                      setIsNewPlan(true);
+                      setIsPlanModalOpen(true);
+                    }}
+                    className="border-2 border-dashed border-slate-200 hover:border-blue-500 hover:bg-slate-50/50 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[190px] text-center gap-3 transition-all cursor-pointer group group-hover:scale-98"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center text-slate-450 group-hover:text-blue-600 transition-colors">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-slate-800 block">Add New Plan Option</span>
+                      <span className="text-xs text-slate-450 block mt-0.5">Click here to define a custom subscription.</span>
+                    </div>
+                  </button>
                 </div>
-              </div>
+              )}
 
-              <button 
-                type="submit"
-                disabled={saving}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs"
-              >
-                {saving ? <Loader className="w-5 h-5 animate-spin" /> : <span>Save Subscription Plans</span>}
-              </button>
-            </form>
+              {/* Plans Editing overlay Modal */}
+              {isPlanModalOpen && (
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                  <div 
+                    className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 animate-in slide-in-from-bottom-6 zoom-in-95 duration-200"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      <div>
+                        <h4 className="text-lg font-bold text-slate-900 font-display">
+                          {isNewPlan ? 'Create Subscription Plan' : 'Edit Plan Details'}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Enter details to update plan configuration.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPlanModalOpen(false);
+                          setEditingPlan(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer transition-colors p-1"
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSavePlan} className="space-y-4">
+                      {/* Plan ID Input */}
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Plan ID</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 3m, yearly_pro"
+                          value={editingPlan?.id || ''}
+                          onChange={(e) => {
+                            if (isNewPlan) {
+                              setEditingPlan({ ...editingPlan, id: e.target.value });
+                            }
+                          }}
+                          required
+                          disabled={!isNewPlan}
+                          className={`w-full border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-colors ${
+                            isNewPlan 
+                              ? 'bg-white border-slate-200 text-slate-800' 
+                              : 'bg-slate-100 border-slate-200 text-slate-450 cursor-not-allowed font-mono'
+                          }`}
+                        />
+                        {isNewPlan && (
+                          <span className="text-[10px] text-slate-400 block mt-1 leading-normal">
+                            Unique URL key/db index (e.g. "3m", "annual"). Cannot be changed once created.
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Plan Name */}
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Plan Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 3 Months Pro Plan"
+                          value={editingPlan?.name || ''}
+                          onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
+                          required
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Duration */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Duration (Months)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={editingPlan?.duration_months || ''}
+                            onChange={(e) => setEditingPlan({ ...editingPlan, duration_months: parseInt(e.target.value, 10) || 1 })}
+                            required
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+
+                        {/* Price */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Price (USD)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editingPlan?.price_usd || ''}
+                            onChange={(e) => setEditingPlan({ ...editingPlan, price_usd: parseFloat(e.target.value) || 0 })}
+                            required
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Discount */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Discount (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={editingPlan?.discount_percent || 0}
+                            onChange={(e) => setEditingPlan({ ...editingPlan, discount_percent: parseInt(e.target.value, 10) || 0 })}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+
+                        {/* Description Subtext */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Subtext / Desc</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Best offer value"
+                            value={editingPlan?.subtext || ''}
+                            onChange={(e) => setEditingPlan({ ...editingPlan, subtext: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPlanModalOpen(false);
+                            setEditingPlan(null);
+                          }}
+                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={saving}
+                          className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+                        >
+                          {saving ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Save Plan</span>}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* TAB: SYSTEM SETTINGS */}

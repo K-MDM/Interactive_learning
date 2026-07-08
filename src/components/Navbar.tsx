@@ -14,6 +14,7 @@ export default function Navbar({ rightSlot }: NavbarProps) {
 
   const links = [
     { href: '/',          label: 'Home'    },
+    { href: '/demo',      label: 'Demos'   },
     { href: '/checkout',  label: 'Pricing' },
     { href: '/contact',   label: 'Support' },
   ];

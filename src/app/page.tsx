@@ -61,12 +61,12 @@ export default async function LandingPage() {
             </Link>
             
             {hasDemos ? (
-              <a 
-                href="#demo-showcase"
-                className="border border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-bold px-8 py-4 rounded-xl flex items-center justify-center transition-all shadow-sm"
+              <Link 
+                href="/demo"
+                className="border border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-bold px-8 py-4 rounded-xl flex items-center justify-center transition-all shadow-sm hover:bg-slate-50"
               >
                 Try Demo Lectures
-              </a>
+              </Link>
             ) : (
               <a 
                 href="#features"
@@ -134,51 +134,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Demo Lessons Showcase */}
-      {hasDemos && (
-        <section id="demo-showcase" className="w-full bg-white py-24 z-10 border-y border-slate-200">
-          <div className="max-w-7xl mx-auto px-6 space-y-16">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center space-x-2 bg-emerald-50 border border-emerald-100 text-emerald-600 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Free Trial Lessons</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-display">
-                Experience Interactive Notes
-              </h2>
-              <p className="text-slate-650 max-w-xl mx-auto text-base">
-                Try out these sample lectures directly in your browser. Tap elements to trigger animations and explore live code scripts.
-              </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {demoNotes.map((note: any) => (
-                <div key={note.id} className="bg-slate-50/50 border border-slate-200 rounded-2xl p-6 flex flex-col justify-between hover:border-blue-500/35 transition-all shadow-sm hover:shadow-md hover:bg-white group cursor-pointer">
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-display line-clamp-1">{note.title}</h3>
-                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 min-h-[60px]">
-                      {note.description || 'No description provided. Click below to view the interactive lecture.'}
-                    </p>
-                  </div>
-
-                  <div className="pt-6 border-t border-slate-100 mt-6 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Public Access</span>
-                    <a 
-                      href={`/webview/notes/${note.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-slate-100 hover:bg-blue-600 hover:text-white border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
-                    >
-                      <span>Open Lecture</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Features Grid */}
       <section id="features" className="w-full py-24 z-10 bg-slate-50/30">
