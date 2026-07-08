@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Sparkles, ArrowRight, ArrowLeft, BookOpen } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import InteractiveSimulator from '@/components/InteractiveSimulator';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function DemoLessonsPage() {
       .select('*')
       .eq('is_demo', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     demoNotes = data || [];
   } catch (err: any) {
@@ -35,10 +36,10 @@ export default async function DemoLessonsPage() {
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-24 z-10 space-y-16">
-        
+
         {/* Breadcrumbs / Back button */}
         <div className="flex items-center">
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors text-sm font-semibold group"
           >
@@ -79,7 +80,7 @@ export default async function DemoLessonsPage() {
               We are currently setting up the free lectures. Check back shortly to try our interactive classes.
             </p>
             <div className="pt-2">
-              <Link 
+              <Link
                 href="/checkout"
                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all animate-pulse"
               >
@@ -90,13 +91,13 @@ export default async function DemoLessonsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {demoNotes.map((note: any) => (
-              <div 
-                key={note.id} 
+              <div
+                key={note.id}
                 className="bg-white border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/[0.04] transition-all duration-300 group relative overflow-hidden"
               >
                 {/* Glowing bottom gradient on hover */}
                 <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-650 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                
+
                 <div className="space-y-4">
                   <div className="flex justify-between items-start">
                     <span className="bg-slate-100 text-slate-500 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -110,7 +111,7 @@ export default async function DemoLessonsPage() {
                   <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-display line-clamp-2">
                     {note.title}
                   </h3>
-                  
+
                   <p className="text-slate-655 text-sm leading-relaxed line-clamp-4 min-h-[80px]">
                     {note.description || 'Welcome to this interactive class lecture note. Click below to experience animated components and widgets.'}
                   </p>
@@ -118,7 +119,7 @@ export default async function DemoLessonsPage() {
 
                 <div className="pt-6 border-t border-slate-100 mt-8 flex items-center justify-between">
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Public Access</span>
-                  <a 
+                  <a
                     href={`/webview/notes/${note.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -132,6 +133,19 @@ export default async function DemoLessonsPage() {
             ))}
           </div>
         )}
+
+        {/* Dynamic Sandbox Simulator playground
+        <div className="pt-12 border-t border-slate-200">
+          <div className="text-center space-y-4 max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+              Try Interactive Notes Components
+            </h2>
+            <p className="text-slate-550 text-sm leading-relaxed">
+              Play with real interactive widgets from Keeelai science and engineering lectures right here in our simulation sandbox.
+            </p>
+          </div>
+          <InteractiveSimulator />
+        </div> */}
 
       </main>
 
