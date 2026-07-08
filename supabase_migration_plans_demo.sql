@@ -30,3 +30,7 @@ on conflict (id) do update set
 
 -- 5. Add is_demo column to Notes table if it doesn't exist
 alter table public.notes add column if not exists is_demo boolean not null default false;
+
+-- 6. Create Policy to allow public SELECT on demo notes
+create policy "Anyone can read demo notes" on public.notes
+  for select using (is_demo = true);
