@@ -219,9 +219,9 @@ export default function CheckoutPage() {
 
   // Redirect subscribed users to membership management dashboard
   useEffect(() => {
-    const isSubscribed = !!profile?.web_subscription_active && 
+    const isSubscribed = !!profile?.web_subscription_active &&
       (!profile?.web_subscription_expires_at || new Date(profile.web_subscription_expires_at) > new Date());
-    
+
     if (isSubscribed) {
       setScreen('membership');
     } else if (screen === 'membership') {
@@ -267,7 +267,7 @@ export default function CheckoutPage() {
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Keeelai',
-        description: `Keeelai Notes: ${selectedPlanObj?.name || selectedPlan} Membership`,
+        description: `KEEEL AI: ${selectedPlanObj?.name || selectedPlan} Membership`,
         order_id: orderData.orderId,
         handler: async function (response: any) {
           try {
@@ -405,8 +405,8 @@ export default function CheckoutPage() {
                         ${isPopular
                           ? 'border-2 border-blue-500 bg-white shadow-xl shadow-blue-100/50 scale-[1.02]'
                           : isSelected
-                          ? 'border-2 border-blue-300 bg-white shadow-md'
-                          : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md hover:-translate-y-1'
+                            ? 'border-2 border-blue-300 bg-white shadow-md'
+                            : 'border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md hover:-translate-y-1'
                         }`}
                       onClick={() => {
                         setSelectedPlan(plan.id);
@@ -508,7 +508,7 @@ export default function CheckoutPage() {
           <section className="max-w-6xl mx-auto px-6 mt-20">
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-10 text-center text-white">
               <div className="absolute inset-0 opacity-10"
-                style={{backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '40px 40px'}}
+                style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }}
               />
               <div className="relative z-10">
                 <h3 className="text-2xl md:text-3xl font-extrabold mb-3 font-display">
@@ -541,13 +541,13 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col justify-between relative overflow-hidden">
         <Navbar />
-        
+
         {/* Editorial Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35 pointer-events-none" />
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-6 pt-32 pb-24 z-10 flex flex-col justify-center">
           <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-xl shadow-slate-100/50 space-y-8 relative overflow-hidden">
-            
+
             {/* Top accent line */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
 
@@ -572,7 +572,7 @@ export default function CheckoutPage() {
 
             {/* Dashboard metrics info layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              
+
               {/* Left Column: Plan Information */}
               <div className="space-y-6">
                 <div>
@@ -597,7 +597,7 @@ export default function CheckoutPage() {
                     <div className="flex justify-between items-center text-sm border-t border-slate-200/60 pt-3.5">
                       <span className="text-slate-500 font-semibold">Expiration Date:</span>
                       <span className="font-bold text-slate-800">
-                        {profile?.web_subscription_expires_at 
+                        {profile?.web_subscription_expires_at
                           ? new Date(profile.web_subscription_expires_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
                           : 'Lifetime Access'}
                       </span>
@@ -622,8 +622,8 @@ export default function CheckoutPage() {
                       Keeelai interactive, animated lecture modules are designed to run inside our secure mobile learning app. Note: You cannot run premium notes directly in the desktop browser.
                     </p>
                     <div className="space-y-2.5 pt-2">
-                      <a 
-                        href="https://play.google.com/store/apps/details?id=com.keeelai.notes" 
+                      <a
+                        href="https://play.google.com/store/apps/details?id=com.keeelai.notes"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full bg-white border border-slate-200 hover:border-slate-350 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98"
@@ -631,7 +631,7 @@ export default function CheckoutPage() {
                         <Smartphone className="w-4 h-4 text-blue-600" />
                         <span>Download Android App</span>
                       </a>
-                      <Link 
+                      <Link
                         href="/contact"
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-98"
                       >
@@ -646,7 +646,7 @@ export default function CheckoutPage() {
 
           </div>
         </main>
-        
+
         <Footer />
       </div>
     );
@@ -680,7 +680,7 @@ export default function CheckoutPage() {
             <div>
               <Link href="/" className="inline-flex items-center gap-2 text-blue-600 font-bold mb-4 hover:underline">
                 <BookOpen className="w-5 h-5" />
-                Keeelai Notes
+                KEEEL AI
               </Link>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
                 Complete Your Purchase

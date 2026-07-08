@@ -1,5 +1,5 @@
 -- =======================================================
--- SQL Upgrade Script for Keeelai Notes Subscription Platform
+-- SQL Upgrade Script for KEEEL AI Subscription Platform
 -- Copy and paste this into the Supabase SQL Editor
 -- =======================================================
 
