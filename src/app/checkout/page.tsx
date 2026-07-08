@@ -7,17 +7,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ShieldCheck, BookOpen, CheckCircle, ArrowRight, Loader,
-  Tag, Info, ChevronLeft, Zap, Star, Crown, Check
+  Tag, Info, ChevronLeft, Zap, Star, Crown, Check, Smartphone
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
-type Screen = 'plans' | 'checkout';
+type Screen = 'plans' | 'checkout' | 'membership';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -61,6 +62,14 @@ export default function CheckoutPage() {
     async function loadData() {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: dbProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(dbProfile || null);
+      }
 
       try {
         const { data: dbPlans } = await supabase
@@ -105,8 +114,18 @@ export default function CheckoutPage() {
 
     loadData();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: dbProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(dbProfile || null);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -197,6 +216,18 @@ export default function CheckoutPage() {
       revalidateCoupon();
     }
   }, [selectedPlan, pricing.plans]);
+
+  // Redirect subscribed users to membership management dashboard
+  useEffect(() => {
+    const isSubscribed = !!profile?.web_subscription_active && 
+      (!profile?.web_subscription_expires_at || new Date(profile.web_subscription_expires_at) > new Date());
+    
+    if (isSubscribed) {
+      setScreen('membership');
+    } else if (screen === 'membership') {
+      setScreen('plans');
+    }
+  }, [profile, screen]);
 
   // Pricing calculations
   const selectedPlanObj = Array.isArray(pricing.plans)
@@ -498,6 +529,124 @@ export default function CheckoutPage() {
         </main>
 
         {/* Footer */}
+        <Footer />
+      </div>
+    );
+  }
+
+  /* ─────────────────────────────────────────────
+     SCREEN: ACTIVE MEMBERSHIP DASHBOARD
+  ───────────────────────────────────────────── */
+  if (screen === 'membership') {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col justify-between relative overflow-hidden">
+        <Navbar />
+        
+        {/* Editorial Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35 pointer-events-none" />
+
+        <main className="flex-1 w-full max-w-4xl mx-auto px-6 pt-32 pb-24 z-10 flex flex-col justify-center">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-xl shadow-slate-100/50 space-y-8 relative overflow-hidden">
+            
+            {/* Top accent line */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Active Membership</span>
+                </div>
+                <h1 className="text-3xl font-extrabold text-slate-900 font-display">Manage Membership</h1>
+                <p className="text-slate-500 text-sm">Review your active premium subscription details below.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-xl text-xs transition-colors self-start md:self-center cursor-pointer"
+              >
+                Sign Out Account
+              </button>
+            </div>
+
+            {/* Dashboard metrics info layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              {/* Left Column: Plan Information */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Subscription Status</h3>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-semibold">User Account:</span>
+                      <span className="font-bold text-slate-800 truncate max-w-[200px]" title={user?.email}>{user?.email}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-semibold">Member Since:</span>
+                      <span className="font-bold text-slate-800">
+                        {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-semibold">Plan Status:</span>
+                      <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wide">
+                        Premium Active
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-t border-slate-200/60 pt-3.5">
+                      <span className="text-slate-500 font-semibold">Expiration Date:</span>
+                      <span className="font-bold text-slate-800">
+                        {profile?.web_subscription_expires_at 
+                          ? new Date(profile.web_subscription_expires_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+                          : 'Lifetime Access'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-blue-800 text-xs leading-relaxed space-y-2">
+                  <h4 className="font-bold text-blue-900">Looking to change plans?</h4>
+                  <p>
+                    Because you have an active membership, we prevent purchasing multiple overlapping subscriptions. To adjust billing details or cancel renewal, please contact support.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Next Steps & Client Apps downloads */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to Access Lectures</h3>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                    <p className="text-slate-600 text-xs leading-relaxed">
+                      Keeelai interactive, animated lecture modules are designed to run inside our secure mobile learning app. Note: You cannot run premium notes directly in the desktop browser.
+                    </p>
+                    <div className="space-y-2.5 pt-2">
+                      <a 
+                        href="https://play.google.com/store/apps/details?id=com.keeelai.notes" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-white border border-slate-200 hover:border-slate-350 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98"
+                      >
+                        <Smartphone className="w-4 h-4 text-blue-600" />
+                        <span>Download Android App</span>
+                      </a>
+                      <Link 
+                        href="/contact"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-98"
+                      >
+                        <span>Contact Billing Support</span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </main>
+        
         <Footer />
       </div>
     );
