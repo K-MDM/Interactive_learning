@@ -77,6 +77,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // 5. Log transaction details for tracking and KPIs
+    try {
+      const amountPaid = (Number(razorpayOrder.amount) || 0) / 100;
+      const currencyPaid = razorpayOrder.currency || 'USD';
+      const couponCodeApplied = razorpayOrder.notes?.couponCode || null;
+
+      const { error: txError } = await adminSupabase
+        .from('transactions')
+        .upsert({
+          user_id: user.id,
+          user_email: user.email || '',
+          plan_id: planId,
+          amount_paid: amountPaid,
+          currency: currencyPaid,
+          coupon_code: couponCodeApplied,
+          razorpay_payment_id: razorpay_payment_id,
+          razorpay_order_id: razorpay_order_id,
+          status: 'completed'
+        }, { onConflict: 'razorpay_payment_id' });
+
+      if (txError) {
+        console.error('Failed to log payment transaction:', txError);
+      }
+    } catch (txErr) {
+      console.error('Transaction logging block threw exception:', txErr);
+    }
+
     return NextResponse.json({ success: true, message: 'Subscription activated' });
   } catch (error: any) {
     console.error('Razorpay Verification Error:', error);

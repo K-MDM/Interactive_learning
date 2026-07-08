@@ -55,6 +55,38 @@ export async function POST(request: Request) {
           console.error('Webhook DB Update Error:', dbError);
           return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
         }
+
+        // Log transaction details for tracking and KPIs
+        try {
+          const payment = payload.payload.payment?.entity;
+          if (payment) {
+            const paymentId = payment.id;
+            const amountPaid = (payment.amount || 0) / 100;
+            const currencyPaid = payment.currency || 'USD';
+            const couponCodeApplied = order.notes?.couponCode || null;
+            const userEmail = payment.email || '';
+
+            const { error: txError } = await adminSupabase
+              .from('transactions')
+              .upsert({
+                user_id: userId,
+                user_email: userEmail,
+                plan_id: planId,
+                amount_paid: amountPaid,
+                currency: currencyPaid,
+                coupon_code: couponCodeApplied,
+                razorpay_payment_id: paymentId,
+                razorpay_order_id: order.id,
+                status: 'completed'
+              }, { onConflict: 'razorpay_payment_id' });
+
+            if (txError) {
+              console.error('Webhook transaction log failed:', txError);
+            }
+          }
+        } catch (txErr) {
+          console.error('Webhook transaction logging threw exception:', txErr);
+        }
       }
     }
 
