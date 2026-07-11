@@ -16,7 +16,7 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     // Simulate submission
     setTimeout(() => {
       setLoading(false);
@@ -32,12 +32,36 @@ export default function ContactPage() {
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
       <Navbar dark={false} />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            "name": "Get in Touch with Keeelai Education Support",
+            "url": "https://keeelai.com/contact",
+            "description": "Contact Keeelai support team for subscription activations, custom educational licenses, or system setup help.",
+            "mainEntity": {
+              "@type": "Organization",
+              "name": "Keeelai",
+              "url": "https://keeelai.com",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "email": "support@keeelai.com",
+                "contactType": "customer support",
+                "availableLanguage": "English"
+              }
+            }
+          })
+        }}
+      />
+
       {/* Grid background layer */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-55 pointer-events-none" />
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative z-10">
-        
+
         {/* Contact Info column */}
         <div className="lg:col-span-5 space-y-8 lg:pr-8">
           <div className="space-y-4">
@@ -78,8 +102,8 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Headquarters</h3>
-                <p className="text-sm font-bold text-slate-900 mt-1">Keeelai Inc.</p>
-                <p className="text-xs text-slate-500 mt-0.5 font-semibold">San Francisco, California</p>
+                <p className="text-sm font-bold text-slate-900 mt-1">Keeel Pvt. Ltd.</p>
+                <p className="text-xs text-slate-500 mt-0.5 font-semibold">Maharashtra, India</p>
               </div>
             </div>
           </div>
@@ -108,7 +132,7 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <h2 className="text-xl font-bold text-slate-900 font-display mb-2">Send us a message</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Your Name</label>

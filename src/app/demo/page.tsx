@@ -36,6 +36,30 @@ export default async function DemoLessonsPage() {
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
       <Navbar dark={false} />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://keeelai.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Demos",
+                "item": "https://keeelai.com/demo"
+              }
+            ]
+          })
+        }}
+      />
+
       {/* Editorial Grid Background in Light Mode */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-55 pointer-events-none" />
 

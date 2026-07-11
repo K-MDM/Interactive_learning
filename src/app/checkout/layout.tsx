@@ -10,5 +10,27 @@ export default function CheckoutLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Keeelai Premium Simulator Access",
+            "description": "Unlock full access to Keeelai's interactive virtual science experiments and classroom visualizers.",
+            "offers": {
+              "@type": "AggregateOffer",
+              "priceCurrency": "USD",
+              "lowPrice": "4.99",
+              "highPrice": "49.99",
+              "offerCount": "3"
+            }
+          })
+        }}
+      />
+      {children}
+    </>
+  );
 }

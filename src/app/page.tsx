@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { 
-  ArrowRight, Cpu, BookOpen, Sparkles, CheckCircle2, 
+import {
+  ArrowRight, Cpu, BookOpen, Sparkles, CheckCircle2,
   HelpCircle, ChevronRight, Zap, GraduationCap, Smartphone
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -15,13 +15,13 @@ export default function LandingPage() {
   return (
     <div className="bg-[#FAF9F6] text-[#0F172A] flex flex-col min-h-screen relative font-sans select-none antialiased">
       <Navbar dark={false} />
-      
+
       {/* Cinematic DNA Video Hero Banner */}
       <HeroSection />
 
       {/* Main Content Body */}
       <main className="w-full max-w-6xl mx-auto space-y-24 py-16 md:py-24 px-6 relative z-10">
-        
+
         {/* Section 1: Detail Intro Pitch */}
         <div className="text-center max-w-3xl mx-auto space-y-6">
           <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
@@ -29,7 +29,7 @@ export default function LandingPage() {
             <span>The Immersive Learning Solution</span>
           </div>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 leading-tight tracking-tight font-display">
-            Textbooks are flat.<br/>
+            Textbooks are flat.<br />
             <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
               Learning should be hands-on.
             </span>
@@ -54,9 +54,9 @@ export default function LandingPage() {
             <h3 className="text-2xl md:text-3xl font-black tracking-tight font-display text-slate-900">Immersive Visual Learning</h3>
             <p className="text-slate-500 text-sm font-semibold">Helping parents explain complex subjects and empowering teachers with interactive tools.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Card 1: Distillation/Titration widgets */}
             <div className="md:col-span-2 bg-white border border-slate-200 rounded-3xl p-8 hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -171,7 +171,7 @@ export default function LandingPage() {
               Test variables below to see the immersive player in action: adjust heat levels in chemical columns, drop acid into base titrations, and align gears.
             </p>
           </div>
-          
+
           <div className="border border-slate-200/80 rounded-[2.5rem] overflow-hidden bg-slate-950 shadow-lg">
             <InteractiveSimulator />
           </div>
@@ -225,14 +225,14 @@ export default function LandingPage() {
             <p className="text-slate-555 text-sm leading-relaxed font-semibold">
               Still curious about how Keeelai interactive notes deliver better memory retention?
             </p>
-            <div className="mt-6 bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3 text-left">
+            {/* <div className="mt-6 bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3 text-left">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">✓ NGSS-Aligned Curriculum</span>
               <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 All simulations are reviewed by certified curriculum designers to match Next Generation Science Standards (NGSS).
               </p>
-            </div>
+            </div> */}
           </div>
-          
+
           <div className="lg:col-span-7 space-y-6">
             {[
               {
