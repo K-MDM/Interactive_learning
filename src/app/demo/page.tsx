@@ -1,11 +1,17 @@
 import React from 'react';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/server';
 import { Sparkles, ArrowRight, ArrowLeft, BookOpen } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Explore Interactive Science & Math Simulations | Keeelai Demos',
+  description: 'Try our free virtual science experiments and math interactive classrooms. Learn by doing with hands-on simulator controls.',
+};
 
 export default async function DemoLessonsPage() {
   let demoNotes: any[] = [];
@@ -51,16 +57,16 @@ export default async function DemoLessonsPage() {
         <div className="text-center space-y-4 max-w-2xl mx-auto">
           <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-750 text-blue-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-4 h-4 animate-pulse text-blue-600" />
-            <span>Interactive Demo Notes</span>
+            <span>Simulation Player Demos</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight font-display leading-[1.15]">
-            Experience{' '}
+            Explore the{' '}
             <span className="bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
-              Keeelai Note Viewer
+              Interactive Simulator
             </span>
           </h1>
           <p className="text-slate-600 text-base leading-relaxed font-semibold">
-            Take our interactive, self-contained HTML notes for a spin directly in your browser. Experience how animations, responsiveness, and clean widget execution bring concepts to life.
+            Explore virtual experiments and classroom visualizers directly in your browser. Experience how hands-on animations and interactive controls bring science concepts to life.
           </p>
         </div>
 
@@ -75,8 +81,8 @@ export default async function DemoLessonsPage() {
               <BookOpen className="w-6 h-6" />
             </div>
             <h2 className="text-xl font-bold text-slate-900">No Demos Available</h2>
-            <p className="text-slate-600 text-sm leading-relaxed font-semibold">
-              We are currently setting up the free lectures. Check back shortly to try our interactive classes.
+            <p className="text-slate-605 text-sm leading-relaxed font-semibold">
+              We are currently setting up the free simulations. Check back shortly to try our interactive classrooms.
             </p>
             <div className="pt-2">
               <Link
@@ -100,7 +106,7 @@ export default async function DemoLessonsPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-start">
                     <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                      Interactive Lecture
+                      Interactive Simulation
                     </span>
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                       Free Trial
@@ -112,7 +118,7 @@ export default async function DemoLessonsPage() {
                   </h3>
 
                   <p className="text-slate-600 text-sm leading-relaxed line-clamp-4 min-h-[80px] font-medium">
-                    {note.description || 'Welcome to this interactive class lecture note. Click below to experience animated components and widgets.'}
+                    {note.description || 'Explore virtual simulations and hands-on experiments. Adjust variables to see science laws react in real-time.'}
                   </p>
                 </div>
 

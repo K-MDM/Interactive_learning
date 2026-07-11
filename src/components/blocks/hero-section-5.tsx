@@ -16,18 +16,23 @@ export function HeroSection() {
             {/* Tagline badge */}
             <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-250 text-emerald-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-650" />
-              <span>Interactive Learning Platform</span>
+              <span>Immersive Science & Math Visualizer</span>
             </div>
 
             <h1 className="max-w-2xl text-balance text-5xl md:text-6xl font-black font-display tracking-tight text-[#0F172A] xl:text-7xl leading-[1.05]">
-              Learn Everything <br />
-              <span className="bg-gradient-to-r from-[#4F46H6] to-[#0D9488] bg-gradient-to-r from-indigo-600 to-teal-500 bg-clip-text text-transparent">
-                10x Faster
+              Bring Science & Math <br />
+              <span className="bg-gradient-to-r from-indigo-600 to-teal-500 bg-clip-text text-transparent">
+                To Life
               </span>
             </h1>
-            <p className="mt-6 max-w-2xl text-balance text-base md:text-lg text-slate-650 font-semibold leading-relaxed">
-              Unlock your academic potential with KEEEL AI, the interactive learning platform designed to make complex subjects simple, engaging, and unforgettable.
-            </p>
+
+            <blockquote className="my-5 border-l-4 border-emerald-550 border-emerald-500 pl-4 text-m font-semibold text-slate-500 italic max-w-xl text-left">
+              Keeelai is an learning platform that helps teachers explain complex concepts and enables children to run hands-on virtual experiments using an immersive simulation player.
+            </blockquote>
+
+            {/* <p className="mt-4 max-w-2xl text-balance text-base md:text-lg text-slate-650 font-semibold leading-relaxed">
+              Help your children visualize abstract concepts. Keeelai empowers teachers with live classroom simulations and gives children a hands-on virtual lab player to learn by doing.
+            </p> */}
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
               <Button

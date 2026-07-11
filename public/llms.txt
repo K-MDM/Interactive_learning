@@ -1,0 +1,18 @@
+# Keeelai
+
+Keeelai is an interactive learning platform that helps teachers explain complex concepts and enables children to run hands-on virtual experiments using an immersive simulation player.
+
+## Visual Simulation Lab
+Our browser-based interactive simulation player brings abstract math and science concepts to life.
+
+### Key Capabilities
+- **Tactile Learning**: Students manipulate variables (e.g. temperature, gear sizing, titrants) and see real-time graphical reactions.
+- **Active Concept Checks**: Interactive check-your-understanding checkpoints built directly into lessons.
+- **Smartboard & iPad Optimized**: Clean interface controls scaled for classroom projections and tablet studies.
+- **K-12 Alignment**: Structured around science and math school curriculums.
+
+## Key Links
+- Homepage: https://keeel.ai/
+- Demos: https://keeel.ai/demo
+- Pricing & Membership: https://keeel.ai/checkout
+- Support / Contact: https://keeel.ai/contact
