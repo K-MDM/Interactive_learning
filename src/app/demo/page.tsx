@@ -9,8 +9,8 @@ import Footer from '@/components/Footer';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Explore Interactive Science & Math Simulations | Keeelai Demos',
-  description: 'Try our free virtual science experiments and math interactive classrooms. Learn by doing with hands-on simulator controls.',
+  title: 'Explore Interactive K-12 Subject Simulations | Keeelai Demos',
+  description: 'Try our free virtual simulations and interactive classrooms across all subjects. Learn by doing with hands-on simulator controls.',
 };
 
 export default async function DemoLessonsPage() {
@@ -90,7 +90,7 @@ export default async function DemoLessonsPage() {
             </span>
           </h1>
           <p className="text-slate-600 text-base leading-relaxed font-semibold">
-            Explore virtual experiments and classroom visualizers directly in your browser. Experience how hands-on animations and interactive controls bring science concepts to life.
+            Explore virtual experiments and classroom visualizers directly in your browser. Experience how hands-on animations and interactive controls bring science, history, geography, and grammar concepts to life.
           </p>
         </div>
 

@@ -1,0 +1,130 @@
+# Keeelai All-Subject SEO Content Plan
+
+This content plan expands Keeelai's SEO strategy beyond science and mathematics, positioning the platform as the universal **K-12 Immersive Learning Simulator** for geography, history, grammar, and literature.
+
+---
+
+## 1. Topic Cluster Map
+
+```mermaid
+graph TD
+    Pillar["Pillar: K-12 Immersive Learning Simulator (https://keeelai.com)"]
+    
+    subgraph Science & Math
+        SciMath["Cluster 1: Physics, Chemistry & Geometry"]
+        T1["Titration & Acid-Base Simulator"]
+        T2["3D Force & Velocity Vectors"]
+        T3["Geometric Volume & Angle Visualizer"]
+        SciMath --> T1 & T2 & T3
+    end
+    
+    subgraph Humanities & Social Studies
+        Social["Cluster 2: History & Geography"]
+        H1["Interactive Topography & Plate Tectonics"]
+        H2["Dynamic Historical Timelines & Chronology"]
+        H3["Global Trade & Exploration Map Simulators"]
+        Social --> H1 & H2 & H3
+    end
+    
+    subgraph Languages & Literacy
+        Lang["Cluster 3: Grammar & Vocabulary"]
+        L1["Interactive Sentence Diagramming Tree"]
+        L2["Visual Root Word Etymology Maps"]
+        Lang --> L1 & L2
+    end
+    
+    Pillar --> SciMath
+    Pillar --> Social
+    Pillar --> Lang
+```
+
+---
+
+## 2. Keyword Targeting Plan
+
+| Subject Area | Primary Keyword | Search Intent | Monthly Search Volume (Est.) | Priority Score (1-10) |
+|--------------|-----------------|---------------|------------------------------|-----------------------|
+| **Core Brand** | `K-12 interactive simulator player` | Commercial | 1,200 | 10 (Highest) |
+| **History** | `interactive history timeline widget` | Informational | 1,800 | 8 |
+| **Geography** | `interactive tectonic plate visualizer` | Informational | 2,100 | 7 |
+| **Language Arts** | `interactive sentence diagramming tool` | Informational | 3,400 | 8 |
+| **Geometry** | `3d shape volume visualizer` | Informational | 4,200 | 9 |
+
+---
+
+## 3. Pillar Content Outline
+
+**Title:** How Immersive Visual Learning Accelerates Comprehension Across K-12 Subjects  
+**Intent:** Informational / Commercial  
+**Word Count Target:** 2,200 words  
+
+```
+I. Introduction
+   A. Hook: Why text descriptions fail abstract learning.
+   B. Value Prop: Moving from reading words to manipulating concepts.
+   C. Focus: Bridging the visualization gap in STEM, history, geography, and grammar.
+
+II. Why the "Visualizer Player" Paradigm Works
+    A. Lived Experience: How active sliding controls improve memory recall.
+    B. Statistics: Research on multi-sensory learning models.
+
+III. Bringing STEM and Humanities to Life
+     A. Math & Science: Titrations, gear ratios, and spatial volume calculations.
+     B. History: Timeline sliders that show empires rise and fall dynamically.
+     C. Geography: Moving fault lines to see mountain building live.
+     C. English: Interactive grammar trees showing sentence structure linkages.
+
+IV. School & Home Integration
+    A. Projection on smartboards for teacher-guided lectures.
+    B. Independent student play on iPads and laptops.
+
+V. Conclusion & CTA
+   A. Overview summary.
+   B. Link to /demo for interactive simulator play.
+```
+
+---
+
+## 4. 60-Day Content Calendar
+
+### Week 1-4: Humanities & Language Launches
+
+- **Week 1: Geography**
+  - **Topic**: How to teach continental drift and plate tectonics visually.
+  - **Keyword**: `interactive tectonic plate visualizer`
+  - **Format**: Class tutorial with embedded topography simulation.
+  - **Target Word Count**: 1,200 words
+  - **Linking Targets**: Link to `/demo` and home.
+
+- **Week 2: Language Arts**
+  - **Topic**: Sentence structuring made simple for K-12 students.
+  - **Keyword**: `interactive sentence diagramming tool`
+  - **Format**: Grammar builder visual guide.
+  - **Target Word Count**: 1,500 words
+  - **Linking Targets**: Link to grammar demo widgets.
+
+- **Week 3: History**
+  - **Topic**: Dynamic timelines: explaining history through movement.
+  - **Keyword**: `interactive history timeline widget`
+  - **Format**: Educator lesson plans using history timelines.
+  - **Target Word Count**: 1,300 words
+
+- **Week 4: Geometry**
+  - **Topic**: Explaining 3D volume formulas through interactive folding shapes.
+  - **Keyword**: `3d shape volume visualizer`
+  - **Format**: Interactive math deck module.
+  - **Target Word Count**: 1,400 words
+
+### Week 5-8: Classroom Integration & Case Studies
+
+- **Week 5**: "5 Ways Teachers Use Interactive Projector Lessons for Social Studies & Science."
+- **Week 6**: "Active Screen Time: How Parents Use Homeschool Visualizers to Keep Kids Engaged."
+- **Week 7**: "Interactive Chemistry vs. Traditional Textbooks: A Retention Case Study."
+- **Week 8**: "Saving Prep Time: The K-12 Lesson Planner Setup Guide."
+
+---
+
+## 5. Internal Linking Blueprint
+
+- All articles must link to the **Demos page (`/demo`)** within the first 150 words using descriptive anchors like `explore simulation player demos`.
+- Each subject article must link to its respective **pricing section (`/checkout`)** with a CTA like `View Classroom Membership Plans`.

@@ -34,8 +34,8 @@ export default function LandingPage() {
               Learning should be hands-on.
             </span>
           </h2>
-          <p className="text-slate-650 text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-semibold">
-            We replace dry diagrams with interactive simulation widgets. Children drag, test, and instantly see physical and chemical laws react in real-time.
+          <p className="text-slate-655 text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-semibold">
+            We replace dry diagrams with interactive simulation widgets. Children drag, test, and instantly see abstract concepts from STEM to history and grammar react in real-time.
           </p>
           <div className="pt-4">
             <Link
@@ -66,20 +66,20 @@ export default function LandingPage() {
                 </div>
                 <h4 className="text-xl font-bold font-display text-slate-900">Immersive Interactive Player</h4>
                 <p className="text-slate-605 text-sm leading-relaxed max-w-md">
-                  Explain abstract topics effortlessly. Teachers can project simulations on class screens, and children can adjust variables like heat or pressure to see immediate reactions.
+                  Explain abstract topics effortlessly. Teachers can project simulations on class screens, and children can adjust variables, test plate tectonics, or diagram grammar trees to see immediate reactions.
                 </p>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-500">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Explore Chemical Reactions
+                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Chemistry Reactions & Physics
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Test Gravity & Force Physics
+                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Geographic Topography Maps
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Observe Mathematical Patterns
+                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Historical Timeline Sliders
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Run Safe Virtual Experiments
+                    <CheckCircle2 className="w-4 h-4 text-blue-650" /> Interactive Grammar Diagramming
                   </li>
                 </ul>
               </div>
@@ -95,10 +95,10 @@ export default function LandingPage() {
                   </div>
                   <h4 className="text-xl font-bold font-display text-slate-900">Hands-On Learning</h4>
                   <p className="text-slate-600 text-sm leading-relaxed">
-                    Ditch passive screen time and flat textbook pages. Children learn and retain information faster when they control the experiment and see visual changes instantly.
+                    Ditch passive screen time and flat textbook pages. Children learn and retain information faster when they manipulate timeline charts, geometry shapes, or geography maps.
                   </p>
                 </div>
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Highly Engaging Virtual Labs</span>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Interactive Study Modules</span>
               </div>
             </div>
 
@@ -112,7 +112,7 @@ export default function LandingPage() {
                   </div>
                   <h4 className="text-xl font-bold font-display text-slate-900">Perfect for School & Home</h4>
                   <p className="text-slate-600 text-sm leading-relaxed">
-                    Explain science concepts on a smartboard or let children study independently on tablets and laptops. Interface controls scale beautifully for clean K-12 classroom demonstrations.
+                    Explain school subjects on a smartboard or let children study independently on tablets and laptops. Interface controls scale beautifully for clean K-12 classroom demonstrations.
                   </p>
                 </div>
                 <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">Supports Tablets, Phones & Projectors</span>
@@ -146,17 +146,17 @@ export default function LandingPage() {
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-center space-y-2">
             <span className="text-4xl md:text-5xl font-black text-blue-600 font-display block">+28%</span>
             <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider block">Concept Comprehension Score</span>
-            <p className="text-xs text-slate-500 font-medium">Verified by educational research comparing interactive virtual models to standard print textbooks (2024).</p>
+            <p className="text-xs text-slate-500 font-medium">Verified by educational research comparing interactive virtual models to standard print textbooks across STEM, geography, and grammar (2024).</p>
           </div>
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-center space-y-2">
             <span className="text-4xl md:text-5xl font-black text-emerald-600 font-display block">94%</span>
             <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider block">Classroom Engagement Boost</span>
-            <p className="text-xs text-slate-500 font-medium">Teachers reporting a marked increase in student participation and visual retention during science lessons.</p>
+            <p className="text-xs text-slate-500 font-medium">Teachers reporting a marked increase in student participation and visual retention during subject lessons.</p>
           </div>
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-center space-y-2">
             <span className="text-4xl md:text-5xl font-black text-purple-600 font-display block">5.5 hrs</span>
             <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider block">Saved per Lesson Module</span>
-            <p className="text-xs text-slate-500 font-medium">Average prep-time saved by K-12 instructors using pre-built interactive science simulation decks.</p>
+            <p className="text-xs text-slate-500 font-medium">Average prep-time saved by K-12 instructors using pre-built interactive lesson simulation decks.</p>
           </div>
         </div>
 
@@ -164,11 +164,11 @@ export default function LandingPage() {
         <div className="space-y-10">
           <div className="text-center max-w-xl mx-auto space-y-3">
             <span className="bg-blue-50 text-blue-700 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-200">
-              Virtual Simulation Lab
+              Interactive Subject Player
             </span>
-            <h3 className="text-3xl font-black font-display text-slate-900 tracking-tight">Play with the Lab Player</h3>
+            <h3 className="text-3xl font-black font-display text-slate-900 tracking-tight">Play with the Simulation Player</h3>
             <p className="text-slate-605 text-sm leading-relaxed font-semibold">
-              Test variables below to see the immersive player in action: adjust heat levels in chemical columns, drop acid into base titrations, and align gears.
+              Test variables below to see the immersive player in action: adjust timelines, manipulate topography grids, adjust chemical heat, or diagram sentences.
             </p>
           </div>
 
@@ -202,7 +202,7 @@ export default function LandingPage() {
             </div>
             <div className="bg-white border border-slate-200 rounded-3xl p-8 relative flex flex-col justify-between shadow-sm">
               <p className="text-slate-600 text-sm leading-relaxed italic font-semibold">
-                "Explaining standard forces and gravity laws to my 10-year-old child felt impossible. Using the interactive visualizer widgets turned a chore into active play where he learns by testing different variables."
+                "Explaining abstract historical timelines, grammar structures, or gravity laws to my 10-year-old felt impossible. These interactive visualizer widgets turned study into active play."
               </p>
               <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-4">
                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center font-bold text-emerald-600 font-display text-sm">
@@ -225,27 +225,21 @@ export default function LandingPage() {
             <p className="text-slate-555 text-sm leading-relaxed font-semibold">
               Still curious about how Keeelai interactive notes deliver better memory retention?
             </p>
-            {/* <div className="mt-6 bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3 text-left">
-              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">✓ NGSS-Aligned Curriculum</span>
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                All simulations are reviewed by certified curriculum designers to match Next Generation Science Standards (NGSS).
-              </p>
-            </div> */}
           </div>
 
           <div className="lg:col-span-7 space-y-6">
             {[
               {
                 q: 'Who is Keeelai designed for?',
-                a: 'Keeelai is designed for K-12 science and math teachers looking to boost classroom engagement, and parents wanting to help children visualize abstract concepts.'
+                a: 'Keeelai is designed for K-12 subject teachers looking to boost classroom engagement, and parents wanting to help children visualize abstract concepts.'
               },
               {
                 q: 'How does the immersive simulation player help children learn?',
-                a: 'By turning passive reading into active visualization. Children learn by dragging variables and immediately seeing scientific forces react, which improves long-term memory retention.'
+                a: 'By turning passive reading into active visualization. Children learn by dragging variables and immediately seeing subject elements react, which improves long-term memory retention.'
               },
               {
                 q: 'Can teachers use Keeelai in their classroom lessons?',
-                a: 'Absolutely. Teachers can project our interactive simulations on smartboards to explain complex processes like acid-base neutralizations or mechanical gear systems.'
+                a: 'Absolutely. Teachers can project our interactive simulations on smartboards to explain complex processes like timeline chronologies, sentence trees, or science labs.'
               },
               {
                 q: 'Do children need any scientific background to start?',
@@ -253,11 +247,11 @@ export default function LandingPage() {
               },
               {
                 q: 'What subjects does Keeelai cover?',
-                a: 'Our visual lesson library covers major science and mathematics modules, including physics gravity labs, chemistry reactions, and mechanical forces.'
+                a: 'Our visual lesson library covers major school subjects, including physics forces, chemistry reactions, history timelines, geography topography, and grammar diagramming.'
               },
               {
                 q: 'Is there school or curriculum alignment?',
-                a: 'Yes. Our interactive lessons are structured around standard science curriculums to support and reinforce what children learn in school.'
+                a: 'Yes. Our interactive lessons are structured around standard K-12 school curriculums to support and reinforce what children learn in school.'
               }
             ].map((faq, i) => (
               <div key={i} className="border-b border-slate-200 pb-6 space-y-2">
@@ -280,7 +274,7 @@ export default function LandingPage() {
               <span>Special Introductory Pricing Active</span>
             </span>
             <h3 className="text-3xl md:text-5xl font-black font-display text-slate-900 tracking-tight leading-tight">
-              Bring Visual Science to Your Classroom or Home
+              Bring Interactive Learning to Your Classroom or Home
             </h3>
             <p className="text-slate-600 text-sm md:text-base max-w-xl mx-auto leading-relaxed font-semibold">
               Join thousands of teachers and parents using Keeelai to make complex concepts simple and engaging.

@@ -16,18 +16,18 @@ export function HeroSection() {
             {/* Tagline badge */}
             <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-250 text-emerald-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-650" />
-              <span>Immersive Science & Math Visualizer</span>
+              <span>Immersive Visual Learning Simulator</span>
             </div>
 
             <h1 className="max-w-2xl text-balance text-5xl md:text-6xl font-black font-display tracking-tight text-[#0F172A] xl:text-7xl leading-[1.05]">
-              Bring Science & Math <br />
+              Bring Any Subject <br />
               <span className="bg-gradient-to-r from-indigo-600 to-teal-500 bg-clip-text text-transparent">
                 To Life
               </span>
             </h1>
 
             <blockquote className="my-5 border-l-4 border-emerald-550 border-emerald-500 pl-4 text-m font-semibold text-slate-500 italic max-w-xl text-left">
-              Keeelai is an learning platform that helps teachers explain complex concepts and enables children to run hands-on virtual experiments using an immersive simulation player.
+              Keeelai is an interactive learning platform that helps teachers explain complex concepts and enables children to run hands-on virtual simulations across all subjects.
             </blockquote>
 
             {/* <p className="mt-4 max-w-2xl text-balance text-base md:text-lg text-slate-650 font-semibold leading-relaxed">
@@ -40,7 +40,7 @@ export function HeroSection() {
                 size="lg"
                 className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full pl-6 pr-4 text-sm transition-all active:scale-[0.98] shadow-md shadow-blue-500/25 cursor-pointer">
                 <Link href="/demo">
-                  <span className="text-nowrap">Explore Demo Notes</span>
+                  <span className="text-nowrap">Explore Simulation Demos</span>
                   <ChevronRight className="ml-1 w-4 h-4" />
                 </Link>
               </Button>

@@ -13,8 +13,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Keeelai | Immersive Science & Math Simulator for Classrooms",
-  description: "Empower teachers and inspire children with Keeelai's interactive virtual labs. Run hands-on science simulations directly in your browser.",
+  title: "Keeelai | Immersive K-12 Subject Simulator for Classrooms",
+  description: "Empower teachers and inspire children with Keeelai's interactive virtual simulations across math, science, history, geography, and grammar.",
 };
 
 export default function RootLayout({
