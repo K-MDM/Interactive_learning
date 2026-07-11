@@ -1,343 +1,238 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { BookOpen, ArrowRight } from 'lucide-react';
+import { 
+  ArrowRight, Cpu, BookOpen, Sparkles, CheckCircle2, 
+  HelpCircle, ChevronRight, Zap, GraduationCap, Smartphone
+} from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import InteractiveSimulator from '@/components/InteractiveSimulator';
+import { HeroSection } from '@/components/blocks/hero-section-5';
 
 export default function LandingPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Scrollytelling States
-  const [preloaded, setPreloaded] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
-  const [images, setImages] = useState<HTMLImageElement[]>([]);
-  const [scrollProgress, setScrollProgress] = useState(0);
-
-  // --------------------------------------------------
-  // IMAGE PRELOADING CONTROL
-  // --------------------------------------------------
-  useEffect(() => {
-    let isMounted = true;
-    const totalFrames = 240;
-    const loadedImages: HTMLImageElement[] = [];
-    let loadedCount = 0;
-
-    const preloadImages = () => {
-      for (let i = 1; i <= totalFrames; i++) {
-        const img = new Image();
-        const padIndex = String(i).padStart(5, '0');
-        img.src = `/seq/${padIndex}.png`;
-
-        img.onload = () => {
-          if (!isMounted) return;
-          loadedCount++;
-          setLoadProgress(Math.floor((loadedCount / totalFrames) * 100));
-
-          if (loadedCount === totalFrames) {
-            setImages(loadedImages);
-            setPreloaded(true);
-          }
-        };
-
-        img.onerror = () => {
-          console.error(`Failed to load frame: /seq/${padIndex}.png`);
-          loadedCount++;
-          if (loadedCount === totalFrames && isMounted) {
-            setImages(loadedImages);
-            setPreloaded(true);
-          }
-        };
-
-        loadedImages.push(img);
-      }
-    };
-
-    preloadImages();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Restore scroll progress from sessionStorage
-  useEffect(() => {
-    if (!preloaded || images.length === 0) return;
-
-    try {
-      const saved = sessionStorage.getItem('keeelai_home_scroll_progress');
-      if (saved) {
-        const savedProgress = parseFloat(saved);
-        if (!isNaN(savedProgress) && savedProgress > 0) {
-          // Wait slightly for Next.js layout to stabilize/render before scrolling
-          setTimeout(() => {
-            if (!containerRef.current) return;
-            const totalScrollHeight = containerRef.current.scrollHeight - window.innerHeight;
-            const scrollPosition = savedProgress * totalScrollHeight;
-            window.scrollTo(0, scrollPosition);
-          }, 100);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to restore scroll position:', e);
-    }
-  }, [preloaded, images]);
-
-  // --------------------------------------------------
-  // HIGH-PERFORMANCE SCROLL CANVAS RENDER LOOP
-  // --------------------------------------------------
-  useEffect(() => {
-    if (!preloaded || images.length === 0 || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let currentFrame = 0;
-    let targetFrame = 0;
-    const lerp = 0.08;
-
-    const resizeCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
-      renderFrame(Math.round(currentFrame));
-    };
-
-    const renderFrame = (frameIndex: number) => {
-      const idx = Math.max(0, Math.min(images.length - 1, frameIndex));
-      const img = images[idx];
-      if (!img) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const canvasWidth = rect.width;
-      const canvasHeight = rect.height;
-
-      // Cover scaling calculations (Full viewport fit, zero side borders)
-      const imgWidth = img.width || 1920;
-      const imgHeight = img.height || 1080;
-      const ratio = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
-
-      const width = imgWidth * ratio;
-      const height = imgHeight * ratio;
-      const x = (canvasWidth - width) / 2;
-      const y = (canvasHeight - height) / 2;
-
-      ctx.fillStyle = '#05090D';
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      ctx.drawImage(img, x, y, width, height);
-    };
-
-    const tick = () => {
-      currentFrame += (targetFrame - currentFrame) * lerp;
-      renderFrame(Math.round(currentFrame));
-      animationFrameId = requestAnimationFrame(tick);
-    };
-
-    const handleScroll = () => {
-      if (!containerRef.current) return;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const totalScrollHeight = containerRef.current.scrollHeight - window.innerHeight;
-      const progress = Math.max(0, Math.min(1, -rect.top / totalScrollHeight));
-      setScrollProgress(progress);
-      targetFrame = progress * (images.length - 1);
-
-      try {
-        sessionStorage.setItem('keeelai_home_scroll_progress', progress.toString());
-      } catch (e) {
-        console.warn('Failed to save scroll position to sessionStorage:', e);
-      }
-    };
-
-    window.addEventListener('resize', resizeCanvas);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    resizeCanvas();
-    tick();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [preloaded, images]);
-
-  const getOverlayOpacityAndStyle = (
-    progress: number,
-    start: number,
-    peakStart: number,
-    peakEnd: number,
-    end: number
-  ) => {
-    let opacity = 0;
-    let translateY = 24;
-
-    if (progress >= start && progress <= end) {
-      if (progress < peakStart) {
-        const t = (progress - start) / (peakStart - start);
-        opacity = t;
-        translateY = 24 - t * 24;
-      } else if (progress > peakEnd) {
-        const t = (progress - peakEnd) / (end - peakEnd);
-        opacity = 1 - t;
-        translateY = -t * 24;
-      } else {
-        opacity = 1;
-        translateY = 0;
-      }
-    } else if (progress < start) {
-      opacity = 0;
-      translateY = 24;
-    } else if (progress > end) {
-      opacity = 0;
-      translateY = -24;
-    }
-
-    return {
-      opacity,
-      transform: `translate3d(0, ${translateY}px, 0)`,
-      transition: 'opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
-      pointerEvents: opacity > 0.3 ? 'auto' : 'none'
-    } as React.CSSProperties;
-  };
-
   return (
-    <div className="bg-[#05090D] text-white flex flex-col min-h-screen relative font-sans select-none antialiased">
-      <Navbar dark={true} />
+    <div className="bg-[#FAF9F6] text-[#0F172A] flex flex-col min-h-screen relative font-sans select-none antialiased">
+      <Navbar dark={false} />
+      
+      {/* Cinematic DNA Video Hero Banner */}
+      <HeroSection />
 
-      {/* --------------------------------------------------
-         PREMIUM MINIMAL LOADING SCREEN
-      -------------------------------------------------- */}
-      <div
-        className={`fixed inset-0 bg-[#05090D] z-[999] flex flex-col items-center justify-center transition-all duration-700 pointer-events-none ${preloaded ? 'opacity-0 scale-98' : 'opacity-100'
-          }`}
-      >
-        <div className="space-y-6 text-center">
-          <div className="flex items-center justify-center gap-3">
-            <BookOpen className="w-8 h-8 text-blue-500 animate-float" />
-            <span className="text-xl font-extrabold tracking-tight font-display text-white">KEEEL AI</span>
+      {/* Main Content Body */}
+      <main className="w-full max-w-6xl mx-auto space-y-24 py-16 md:py-24 px-6 relative z-10">
+        
+        {/* Section 1: Detail Intro Pitch */}
+        <div className="text-center max-w-3xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-blue-600 animate-pulse" />
+            <span>The Next Generation of Study Notes</span>
           </div>
-          <div className="w-48 h-[2px] bg-slate-800 rounded-full overflow-hidden mx-auto">
-            <div
-              className="h-full bg-blue-500 transition-all duration-200"
-              style={{ width: `${loadProgress}%` }}
-            />
-          </div>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse-slow">
-            Preloading Scrollytelling Experience ({loadProgress}%)
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 leading-tight tracking-tight font-display">
+            Textbooks are static.<br/>
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
+              Your learning should move.
+            </span>
+          </h2>
+          <p className="text-slate-650 text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-semibold">
+            We compile complex scientific concepts into high-performance, responsive HTML lecture notes with real-time interactive simulation widgets.
           </p>
+          <div className="pt-4">
+            <Link
+              href="/demo"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm transition-all active:scale-[0.98] shadow-md hover:shadow-lg shadow-blue-500/20 inline-flex items-center gap-2 group cursor-pointer"
+            >
+              <span>Launch Interactive Demos</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
-      </div>
 
-      {/* --------------------------------------------------
-         CINEMATIC STICKY CANVAS SCROLLER TRACK
-      -------------------------------------------------- */}
-      <div ref={containerRef} className="relative w-screen h-[500vh] z-10 block">
+        {/* Section 2: Bento Grid Features */}
+        <div className="space-y-8">
+          <div className="text-center space-y-2">
+            <h3 className="text-2xl md:text-3xl font-black tracking-tight font-display text-slate-900">Engineering Behind Keeel AI</h3>
+            <p className="text-slate-500 text-sm font-semibold">Designed for high engagement, portability, and academic success.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Card 1: Distillation/Titration widgets */}
+            <div className="md:col-span-2 bg-white border border-slate-200 rounded-3xl p-8 hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 space-y-4">
+                <div className="inline-flex p-3 bg-blue-50 border border-blue-100 text-blue-600 rounded-2xl">
+                  <Cpu className="w-6 h-6" />
+                </div>
+                <h4 className="text-xl font-bold font-display text-slate-900">Embedded Simulation Blocks</h4>
+                <p className="text-slate-600 text-sm leading-relaxed max-w-md">
+                  Watch distillation columns evaporate chemicals, drop titrant into solutions, and adjust mechanical gears in real-time. Tactile widgets build instant cognitive frameworks.
+                </p>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-500">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-500" /> Kinetic Thermal Controls
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-500" /> pH Neutralization Charts
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-500" /> Gear Ratio Speed Adjusters
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-blue-500" /> Custom Gas Law Slide Decks
+                  </li>
+                </ul>
+              </div>
+            </div>
 
-        {/* Sticky Canvas Frame Viewport - Enforce absolute full screen size */}
-        <div className="sticky top-0 w-screen h-screen overflow-hidden bg-[#05090D] flex items-center justify-center">
-          <canvas
-            ref={canvasRef}
-            className="w-screen h-screen object-cover pointer-events-none block"
-          />
+            {/* Card 2: Self-Contained HTML */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 space-y-4 flex flex-col justify-between h-full">
+                <div className="space-y-4">
+                  <div className="inline-flex p-3 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-xl font-bold font-display text-slate-900">Self-Contained Files</h4>
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                    Every note compiles down into a single, offline-ready HTML asset. Take your lectures anywhere, run animations without active servers, and keep notes forever.
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Zero server dependencies</span>
+              </div>
+            </div>
 
-          {/* ─────────────────────────────────────────────
-             TEXT OVERLAYS SYNCHRONIZED TO SCROLL
-          ───────────────────────────────────────────── */}
+            {/* Card 3: Mobile Experience */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 space-y-4 flex flex-col justify-between h-full">
+                <div className="space-y-4">
+                  <div className="inline-flex p-3 bg-purple-50 border border-purple-100 text-purple-600 rounded-2xl">
+                    <Smartphone className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-xl font-bold font-display text-slate-900">App Native Viewport</h4>
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                    Optimized for mobile learning apps. Read clean text, trigger simulations, and answer interactive slides directly from your phone while traveling.
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">Optimized for iOS & Android</span>
+              </div>
+            </div>
 
-          {/* OVERLAY 1: 0 - 20% (Centered) */}
-          <div
-            style={getOverlayOpacityAndStyle(scrollProgress, 0.0, 0.02, 0.12, 0.18)}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto"
-          >
-            <h2 className="text-5xl sm:text-7xl md:text-8xl font-black text-white leading-tight font-display tracking-tight drop-shadow-md">
-              The End of Static Notes.
-            </h2>
-            <p className="text-lg md:text-2xl text-slate-350 font-semibold mt-4">
-              Learning should move.
+            {/* Card 4: Quiz & Metrics */}
+            <div className="md:col-span-2 bg-white border border-slate-200 rounded-3xl p-8 hover:border-indigo-500/30 transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 space-y-4">
+                <div className="inline-flex p-3 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <h4 className="text-xl font-bold font-display text-slate-900">Knowledge Checkpoints</h4>
+                <p className="text-slate-660 text-sm leading-relaxed max-w-md">
+                  Every lecture note features targeted check-your-understanding checkpoints. Click answers, view instant feedback vectors, and master subjects before starting homework.
+                </p>
+                <div className="pt-2 flex flex-wrap gap-3">
+                  <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-3 py-1 rounded-lg">Multi-choice questions</span>
+                  <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-3 py-1 rounded-lg">Mathematical calculations</span>
+                  <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-3 py-1 rounded-lg">Detailed logic walk-throughs</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Section 3: Live Interactive Simulator */}
+        <div className="space-y-10">
+          <div className="text-center max-w-xl mx-auto space-y-3">
+            <span className="bg-blue-50 text-blue-700 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-200">
+              Interactive Sandbox
+            </span>
+            <h3 className="text-3xl font-black font-display text-slate-900 tracking-tight">Try Interactive Widgets</h3>
+            <p className="text-slate-600 text-sm leading-relaxed font-semibold">
+              Play with our live chemical distillation columns, neutralization titrant containers, and mechanical gear rotation loops.
             </p>
           </div>
+          
+          <div className="border border-slate-200/80 rounded-[2.5rem] overflow-hidden bg-slate-950 shadow-lg">
+            <InteractiveSimulator />
+          </div>
+        </div>
 
-          {/* OVERLAY 2: 20 - 45% (Left Aligned) */}
-          <div
-            style={getOverlayOpacityAndStyle(scrollProgress, 0.18, 0.23, 0.38, 0.43)}
-            className="absolute inset-0 flex flex-col justify-center items-start text-left px-8 md:px-24 max-w-2xl"
-          >
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white leading-[1.1] font-display tracking-tight drop-shadow-md">
-              Every Concept Comes Alive.
-            </h2>
-            <p className="text-md md:text-xl text-slate-355 font-semibold mt-4 leading-relaxed">
-              Watch atoms, molecules, and systems unfold in real time.
+        {/* Section 4: Accordion FAQs */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-10 border-t border-slate-200/60">
+          <div className="lg:col-span-5 space-y-4">
+            <span className="text-xs font-bold text-blue-605 uppercase tracking-widest block">Learn More</span>
+            <h3 className="text-3xl font-black font-display leading-[1.1] text-slate-900">Frequently Asked Questions</h3>
+            <p className="text-slate-550 text-sm leading-relaxed font-semibold">
+              Still curious about how Keeel AI interactive notes deliver better memory retention?
             </p>
           </div>
-
-          {/* OVERLAY 3: 45 - 70% (Right Aligned) */}
-          <div
-            style={getOverlayOpacityAndStyle(scrollProgress, 0.43, 0.48, 0.63, 0.68)}
-            className="absolute inset-0 flex flex-col justify-center items-end text-right px-8 md:px-24 ml-auto max-w-2xl"
-          >
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white leading-[1.1] font-display tracking-tight drop-shadow-md">
-              See What Textbooks Can't Show.
-            </h2>
-            <p className="text-md md:text-xl text-slate-355 font-semibold mt-4 leading-relaxed">
-              Interactive simulations built directly into every lesson.
-            </p>
+          
+          <div className="lg:col-span-7 space-y-6">
+            {[
+              {
+                q: 'What formats do the lecture notes compile to?',
+                a: 'Every note compiles down to a single, secure, self-contained HTML page containing all styles, responsive vector graphics, and React-driven state machines. There are no external CSS/JS networks or loading dependencies.'
+              },
+              {
+                q: 'Can I study offline?',
+                a: 'Yes, because every interactive note is self-contained. Once downloaded, you can run all simulations, quizzes, animations, and read text without any active network connection.'
+              },
+              {
+                q: 'How do I download my purchased notes?',
+                a: 'Our interactive notes are best consumed inside our mobile learning app. Once subscribed, you can log in, sync, and download notes directly to your tablet or mobile phone.'
+              },
+              {
+                q: 'Can I purchase individual subjects?',
+                a: 'We offer full-access membership plans (1 Month, 6 Months, 12 Months) rather than individual subject payments, providing students with complete catalog access to Physics, Chemistry, Biology, and Math.'
+              }
+            ].map((faq, i) => (
+              <div key={i} className="border-b border-slate-200 pb-6 space-y-2">
+                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span>{faq.q}</span>
+                </h4>
+                <p className="text-slate-600 text-sm leading-relaxed pl-6">{faq.a}</p>
+              </div>
+            ))}
           </div>
+        </div>
 
-          {/* OVERLAY 4: 70 - 90% (Left Aligned) */}
-          <div
-            style={getOverlayOpacityAndStyle(scrollProgress, 0.68, 0.72, 0.83, 0.88)}
-            className="absolute inset-0 flex flex-col justify-center items-start text-left px-8 md:px-24 max-w-2xl"
-          >
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white leading-[1.1] font-display tracking-tight drop-shadow-md">
-              Designed For Deep Understanding.
-            </h2>
-            <p className="text-md md:text-xl text-slate-355 font-semibold mt-4 leading-relaxed">
-              Not PDFs. Not videos. Real interaction.
+        {/* Section 5: Premium CTA & Pricing Banner */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-50/60 via-indigo-50/40 to-transparent border border-blue-100 rounded-3xl p-10 md:p-16 text-center max-w-4xl mx-auto shadow-md">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.05),transparent_40%)] pointer-events-none" />
+          <div className="space-y-6 relative z-10">
+            <span className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              <Zap className="w-3.5 h-3.5" />
+              <span>Special Introductory Pricing Active</span>
+            </span>
+            <h3 className="text-3xl md:text-5xl font-black font-display text-slate-900 tracking-tight leading-tight">
+              Unlock Premium Notes Today
+            </h3>
+            <p className="text-slate-600 text-sm md:text-base max-w-xl mx-auto leading-relaxed font-semibold">
+              Join thousands of science and engineering students mastering complex concepts with secure, animated, interactive notes.
             </p>
-          </div>
-
-          {/* OVERLAY 5: 90 - 100% (Centered final CTA) */}
-          <div
-            style={getOverlayOpacityAndStyle(scrollProgress, 0.88, 0.92, 1.0, 1.0)}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 max-w-3xl mx-auto"
-          >
-            <h2 className="text-4xl sm:text-6xl md:text-8xl font-black text-white leading-[1.1] font-display tracking-tight drop-shadow-lg">
-              Knowledge. Visualized.
-            </h2>
-            <p className="text-md md:text-xl text-slate-355 font-semibold mt-4">
-              Experience premium interactive learning.
-            </p>
-            <div className="pt-8 pointer-events-auto">
+            <div className="pt-4 flex flex-wrap justify-center gap-4">
               <Link
-                href="/demo"
-                className="bg-white hover:bg-slate-100 text-black font-bold px-8 py-4 rounded-full text-base transition-all active:scale-[0.98] shadow-md hover:shadow-lg inline-flex items-center gap-2"
+                href="/checkout"
+                className="bg-slate-905 bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer"
               >
-                <span>Explore Notes</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>View Membership Pricing</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/contact"
+                className="bg-transparent hover:bg-slate-100 text-slate-700 font-bold px-8 py-3.5 rounded-xl text-sm transition-all border border-slate-200 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Talk to Support</span>
               </Link>
             </div>
           </div>
-
-          {/* Subtle scroll progress indicators at the bottom
-          <div className="absolute bottom-10 left-10 hidden sm:flex flex-col gap-2 opacity-50 z-20 text-[10px] uppercase font-bold tracking-widest text-slate-500">
-            <span className={`${scrollProgress < 0.18 ? 'text-white font-black' : ''}`}>01. Start</span>
-            <span className={`${scrollProgress >= 0.18 && scrollProgress < 0.43 ? 'text-white font-black' : ''}`}>02. Structures</span>
-            <span className={`${scrollProgress >= 0.43 && scrollProgress < 0.68 ? 'text-white font-black' : ''}`}>03. Lab Tech</span>
-            <span className={`${scrollProgress >= 0.68 && scrollProgress < 0.88 ? 'text-white font-black' : ''}`}>04. Systems</span>
-            <span className={`${scrollProgress >= 0.88 ? 'text-white font-black' : ''}`}>05. Checkout</span>
-          </div> */}
-
         </div>
-      </div>
 
-      {/* <Footer dark={true} /> */}
+      </main>
+
+      <Footer />
     </div>
   );
 }
