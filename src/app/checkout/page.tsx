@@ -37,6 +37,10 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
 
+  // School code states
+  const [schoolCode, setSchoolCode] = useState('');
+  const [redeemLoading, setRedeemLoading] = useState(false);
+
   // Auth States
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -167,6 +171,42 @@ export default function CheckoutPage() {
     setMessage(null);
   };
 
+  const handleRedeemCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolCode.trim()) return;
+    setRedeemLoading(true);
+    setMessage(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('Please login or create an account first to redeem your school license access code.');
+      }
+
+      const res = await fetch('/api/school/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: schoolCode.trim() })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setMessage({ type: 'success', text: 'School access code redeemed successfully! Welcome to Keeelai Premium.' });
+      
+      // Reload profile
+      const { data: dbProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      setProfile(dbProfile || null);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to redeem school access code.' });
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
@@ -219,8 +259,9 @@ export default function CheckoutPage() {
 
   // Redirect subscribed users to membership management dashboard
   useEffect(() => {
-    const isSubscribed = !!profile?.web_subscription_active &&
-      (!profile?.web_subscription_expires_at || new Date(profile.web_subscription_expires_at) > new Date());
+    const isSubscribed = (!!profile?.web_subscription_active &&
+      (!profile?.web_subscription_expires_at || new Date(profile.web_subscription_expires_at) > new Date())) ||
+      (profile?.role === 'student' || profile?.role === 'super_admin' || profile?.role === 'school_admin');
 
     if (isSubscribed) {
       setScreen('membership');
@@ -493,6 +534,70 @@ export default function CheckoutPage() {
                 })}
               </div>
             )}
+          </section>
+
+          {/* School Access Code Redemption Card */}
+          <section className="max-w-2xl mx-auto px-6 mt-16">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-teal-400" />
+              
+              <div className="text-center space-y-2">
+                <span className="inline-block bg-blue-50 border border-blue-200 text-blue-750 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  School License Redemption
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-900 font-display">Redeem Access Code</h3>
+                <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+                  Enter the seat activation code provided by your teacher or school administrator to instantly unlock premium K-12 interactive animated modules.
+                </p>
+              </div>
+
+              {message && (message.text.includes('School access code') || message.text.includes('license code')) && (
+                <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${
+                  message.type === 'success' 
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
+                    : 'bg-rose-50 border-rose-100 text-rose-700'
+                }`}>
+                  {message.text}
+                </div>
+              )}
+
+              {user ? (
+                <form onSubmit={handleRedeemCode} className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    required
+                    value={schoolCode}
+                    onChange={(e) => setSchoolCode(e.target.value)}
+                    placeholder="e.g. OAKRIDGE-STEM-2026"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={redeemLoading}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer shrink-0"
+                  >
+                    {redeemLoading ? <Loader className="w-5 h-5 animate-spin" /> : 'Redeem Seat'}
+                  </button>
+                </form>
+              ) : (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center space-y-3">
+                  <p className="text-xs text-slate-500 font-semibold">
+                    You must be logged in to claim a seat under a school license.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Navigate user to checkout form to login / create account
+                      setScreen('checkout');
+                    }}
+                    className="inline-flex items-center gap-1 bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    <span>Login or Register First</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </section>
 
           {/* Trust Signals */}

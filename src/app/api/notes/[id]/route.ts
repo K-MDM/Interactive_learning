@@ -51,17 +51,46 @@ export async function GET(
       } = await supabase.auth.getUser();
 
       if (user) {
-        // Query the profiles table using Admin Client to check subscription status
+        // Query the profiles table using Admin Client to check role and subscription status
         const { data: profile, error: dbError } = await adminClient
           .from('profiles')
-          .select('web_subscription_active, web_subscription_expires_at')
+          .select(`
+            role,
+            web_subscription_active,
+            web_subscription_expires_at,
+            school_memberships (
+              school_licenses (
+                is_active,
+                expires_at
+              )
+            )
+          `)
           .eq('id', user.id)
           .single();
 
-        if (!dbError && profile && profile.web_subscription_active) {
-          const expiresAt = new Date(profile.web_subscription_expires_at);
-          if (expiresAt > new Date()) {
+        if (!dbError && profile) {
+          // 1. Super admins and school admins have full access
+          if (profile.role === 'super_admin' || profile.role === 'school_admin') {
             isAuthorized = true;
+          }
+          // 2. Individual web subscription check
+          else if (profile.web_subscription_active) {
+            const expiresAt = new Date(profile.web_subscription_expires_at);
+            if (expiresAt > new Date()) {
+              isAuthorized = true;
+            }
+          }
+          
+          // 3. School license membership check
+          if (!isAuthorized && Array.isArray(profile.school_memberships) && profile.school_memberships.length > 0) {
+            const membership: any = profile.school_memberships[0];
+            const license = membership?.school_licenses;
+            if (license && license.is_active) {
+              const licenseExpiresAt = new Date(license.expires_at);
+              if (licenseExpiresAt > new Date()) {
+                isAuthorized = true;
+              }
+            }
           }
         }
       }

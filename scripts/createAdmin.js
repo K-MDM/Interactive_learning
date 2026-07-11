@@ -69,9 +69,10 @@ async function main() {
 
   const { error: profileError } = await supabase
     .from('profiles')
-    .insert({
+    .upsert({
       id: data.user.id,
       email: email,
+      role: 'super_admin',
       web_subscription_active: true,
       web_subscription_expires_at: oneHundredYears.toISOString()
     });

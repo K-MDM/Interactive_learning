@@ -13,11 +13,29 @@ import {
 export default function AdminConsole() {
   const supabase = createClient();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
+  const [role, setRole] = useState<'super_admin' | 'school_admin' | null>(null);
+
+  // School Admin States
+  const [license, setLicense] = useState<any>(null);
+  const [schoolCodes, setSchoolCodes] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [newCodeName, setNewCodeName] = useState('');
+  const [newCodeMaxUses, setNewCodeMaxUses] = useState(10);
+
+  // Super Admin States
+  const [globalLicenses, setGlobalLicenses] = useState<any[]>([]);
+  const [isSchoolModalOpen, setIsSchoolModalOpen] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolSeats, setNewSchoolSeats] = useState(100);
+  const [newSchoolDurationMonths, setNewSchoolDurationMonths] = useState(12);
 
   // Data States
   const [notes, setNotes] = useState<any[]>([]);
@@ -57,58 +75,105 @@ export default function AdminConsole() {
 
   const loadAdminData = async () => {
     try {
+      setLoading(true);
       // 0. Verify Session & set email
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setAdminEmail(session.user.email ?? null);
+      if (!session?.user) {
+        router.push('/admin/login');
+        return;
+      }
+      setAdminEmail(session.user.email ?? null);
+
+      // Fetch user profile to check role
+      const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileErr || !profile || (profile.role !== 'super_admin' && profile.role !== 'school_admin')) {
+        // Not an authorized admin, kick to home
+        router.push('/');
+        return;
       }
 
-      // 1. Fetch notes
-      const { data: dbNotes } = await supabase
-        .from('notes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setNotes(dbNotes || []);
+      const userRole = profile.role as 'super_admin' | 'school_admin';
+      setRole(userRole);
 
-      // 2. Fetch coupons
-      const { data: dbCoupons } = await supabase
-        .from('coupons')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setCoupons(dbCoupons || []);
+      if (userRole === 'super_admin') {
+        // Load Super Admin global data
+        // 1. Fetch notes
+        const { data: dbNotes } = await supabase
+          .from('notes')
+          .select('*')
+          .order('created_at', { ascending: false });
+        setNotes(dbNotes || []);
 
-      // 3. Fetch dynamic pricing from plans table
-      const { data: dbPlans } = await supabase
-        .from('plans')
-        .select('*')
-        .order('created_at', { ascending: true });
+        // 2. Fetch coupons
+        const { data: dbCoupons } = await supabase
+          .from('coupons')
+          .select('*')
+          .order('created_at', { ascending: false });
+        setCoupons(dbCoupons || []);
 
-      // Fetch settings for downloads and tax rate
-      const { data: dbSettings } = await supabase
-        .from('settings')
-        .select('*');
-      
-      let taxPercent = 18;
-      if (dbSettings) {
-        const pricingRow = dbSettings.find(s => s.key === 'pricing');
-        if (pricingRow && pricingRow.value) {
-          taxPercent = pricingRow.value.tax_percent || 18;
+        // 3. Fetch dynamic pricing from plans table
+        const { data: dbPlans } = await supabase
+          .from('plans')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        // Fetch settings for downloads and tax rate
+        const { data: dbSettings } = await supabase
+          .from('settings')
+          .select('*');
+        
+        let taxPercent = 18;
+        if (dbSettings) {
+          const pricingRow = dbSettings.find(s => s.key === 'pricing');
+          if (pricingRow && pricingRow.value) {
+            taxPercent = pricingRow.value.tax_percent || 18;
+          }
+
+          const downloadsRow = dbSettings.find(s => s.key === 'downloads');
+          if (downloadsRow) setDownloads(downloadsRow.value);
         }
 
-        const downloadsRow = dbSettings.find(s => s.key === 'downloads');
-        if (downloadsRow) setDownloads(downloadsRow.value);
-      }
+        setPricing({
+          plans: dbPlans || [],
+          tax_percent: taxPercent
+        });
 
-      setPricing({
-        plans: dbPlans || [],
-        tax_percent: taxPercent
-      });
+        // 4. Fetch metrics
+        const metRes = await fetch('/api/admin/metrics');
+        const metData = await metRes.json();
+        if (!metData.error) {
+          setMetrics(metData);
+        }
 
-      // 4. Fetch metrics
-      const metRes = await fetch('/api/admin/metrics');
-      const metData = await metRes.json();
-      if (!metData.error) {
-        setMetrics(metData);
+        // 5. Fetch global licenses
+        const resLic = await fetch('/api/super/licenses');
+        const dataLic = await resLic.json();
+        setGlobalLicenses(dataLic.licenses || []);
+      } 
+      else if (userRole === 'school_admin') {
+        // Load School Admin local data
+        // 1. Fetch school license details
+        const resLic = await fetch('/api/admin/license');
+        const dataLic = await resLic.json();
+        setLicense(dataLic.license);
+
+        // 2. Fetch generated codes
+        const resCodes = await fetch('/api/admin/codes');
+        const dataCodes = await resCodes.json();
+        setSchoolCodes(dataCodes.codes || []);
+
+        // 3. Fetch active student list
+        const resStud = await fetch('/api/admin/students');
+        const dataStud = await resStud.json();
+        setStudents(dataStud.students || []);
+
+        // Default school admin to school dashboard tab
+        setActiveTab('dashboard');
       }
     } catch (err) {
       console.error('Failed to load admin data', err);
@@ -345,6 +410,84 @@ export default function AdminConsole() {
     }
   };
 
+  // Add School Admin
+  const handleAddSchoolAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/super/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newAdminEmail,
+          password: newAdminPassword,
+          schoolName: newSchoolName,
+          totalSeats: newSchoolSeats,
+          durationMonths: newSchoolDurationMonths
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setMessage({ type: 'success', text: data.message || 'Successfully created school admin!' });
+      setIsSchoolModalOpen(false);
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+      setNewSchoolName('');
+      loadAdminData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create school admin' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Create Access Code
+  const handleCreateAccessCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: newCodeName,
+          maxUses: newCodeMaxUses
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setMessage({ type: 'success', text: 'Successfully generated new access code!' });
+      setIsCodeModalOpen(false);
+      setNewCodeName('');
+      loadAdminData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create access code' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Revoke Student Seat
+  const handleRevokeStudentSeat = async (membershipId: string) => {
+    if (!confirm('Are you sure you want to revoke this student seat? They will lose premium access immediately.')) return;
+    try {
+      const res = await fetch(`/api/admin/students?membershipId=${membershipId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setMessage({ type: 'success', text: 'Student seat membership revoked successfully.' });
+      loadAdminData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to revoke student seat' });
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -381,30 +524,58 @@ export default function AdminConsole() {
 
           {/* Navigation Drawer Menu items */}
           <nav className="space-y-1">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: <Layout className="w-4 h-4" /> },
-              { id: 'notes', label: 'Interactive Lectures', icon: <BookOpen className="w-4 h-4" /> },
-              { id: 'plans', label: 'Subscription Plans', icon: <DollarSign className="w-4 h-4" /> },
-              { id: 'coupons', label: 'Coupon Codes', icon: <Tag className="w-4 h-4" /> },
-              { id: 'settings', label: 'System Configs', icon: <Settings className="w-4 h-4" /> }
-            ].map((menuItem) => (
-              <button
-                key={menuItem.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab(menuItem.id as any);
-                  setMessage(null);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === menuItem.id 
-                    ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                {menuItem.icon}
-                <span>{menuItem.label}</span>
-              </button>
-            ))}
+            {role === 'super_admin' ? (
+              // Super Admin Sidebar Navigation
+              [
+                { id: 'dashboard', label: 'Dashboard', icon: <Layout className="w-4 h-4" /> },
+                { id: 'licenses', label: 'School Licenses', icon: <ShieldCheck className="w-4 h-4" /> },
+                { id: 'notes', label: 'Interactive Lectures', icon: <BookOpen className="w-4 h-4" /> },
+                { id: 'plans', label: 'Subscription Plans', icon: <DollarSign className="w-4 h-4" /> },
+                { id: 'coupons', label: 'Coupon Codes', icon: <Tag className="w-4 h-4" /> },
+                { id: 'settings', label: 'System Configs', icon: <Settings className="w-4 h-4" /> }
+              ].map((menuItem) => (
+                <button
+                  key={menuItem.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(menuItem.id as any);
+                    setMessage(null);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === menuItem.id 
+                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  {menuItem.icon}
+                  <span>{menuItem.label}</span>
+                </button>
+              ))
+            ) : role === 'school_admin' ? (
+              // School Admin Sidebar Navigation
+              [
+                { id: 'dashboard', label: 'School License', icon: <Layout className="w-4 h-4" /> },
+                { id: 'codes', label: 'Access Codes', icon: <Tag className="w-4 h-4" /> },
+                { id: 'students', label: 'Student Seats', icon: <Users className="w-4 h-4" /> }
+              ].map((menuItem) => (
+                <button
+                  key={menuItem.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(menuItem.id as any);
+                    setMessage(null);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === menuItem.id 
+                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  {menuItem.icon}
+                  <span>{menuItem.label}</span>
+                </button>
+              ))
+            ) : null}
           </nav>
 
         </div>
@@ -415,6 +586,9 @@ export default function AdminConsole() {
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Logged in as</span>
             <span className="text-xs font-semibold text-slate-700 truncate block mt-0.5" title={adminEmail || ''}>
               {adminEmail || 'admin@keeel.ai'}
+            </span>
+            <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-1 block">
+              {role === 'super_admin' ? 'Super Admin' : 'School Admin'}
             </span>
           </div>
           <button
@@ -439,18 +613,28 @@ export default function AdminConsole() {
             <div>
               <span className="text-xs text-slate-455 font-semibold uppercase tracking-wider">Console / {activeTab}</span>
               <h1 className="text-2xl font-extrabold text-slate-900 mt-1 capitalize font-display">
-                {activeTab === 'notes' 
-                  ? 'Interactive Lectures' 
-                  : activeTab === 'plans' 
-                  ? 'Subscription Plans' 
-                  : activeTab === 'settings' 
-                  ? 'System Configurations' 
-                  : activeTab === 'coupons' 
-                  ? 'Coupon Manager' 
-                  : 'Dashboard Metrics'}
+                {role === 'super_admin' ? (
+                  activeTab === 'notes' 
+                    ? 'Interactive Lectures' 
+                    : activeTab === 'plans' 
+                    ? 'Subscription Plans' 
+                    : activeTab === 'settings' 
+                    ? 'System Configurations' 
+                    : activeTab === 'coupons' 
+                    ? 'Coupon Manager' 
+                    : activeTab === 'licenses'
+                    ? 'School Licenses Control'
+                    : 'Global Dashboard Metrics'
+                ) : (
+                  activeTab === 'codes' 
+                    ? 'School Access Codes' 
+                    : activeTab === 'students' 
+                    ? 'Enrolled Students' 
+                    : 'School License Summary'
+                )}
               </h1>
             </div>
-            {activeTab === 'notes' && (
+            {role === 'super_admin' && activeTab === 'notes' && (
               <Link 
                 href="/admin/upload"
                 className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
@@ -1226,6 +1410,328 @@ export default function AdminConsole() {
                                 className="text-xs font-semibold text-rose-600 hover:text-rose-500 border border-rose-100 px-2 py-1 rounded hover:bg-rose-50"
                               >
                                 <Trash2 className="w-3.5 h-3.5 inline" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SCHOOL LICENSES (Super Admin Only) */}
+          {role === 'super_admin' && activeTab === 'licenses' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 font-display">Manage Institutional Access</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Register school administrators, edit seat quotas, and verify subscription expirations.</p>
+                </div>
+                <button
+                  onClick={() => setIsSchoolModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Register School License</span>
+                </button>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="pb-3">School Name</th>
+                        <th className="pb-3">Admin Email</th>
+                        <th className="pb-3">Seat Allocations</th>
+                        <th className="pb-3">Expiration Date</th>
+                        <th className="pb-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {globalLicenses.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-6 text-center text-slate-400">No school licenses currently registered.</td>
+                        </tr>
+                      ) : (
+                        globalLicenses.map((lic: any) => (
+                          <tr key={lic.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3.5 font-bold text-slate-900">{lic.school_name}</td>
+                            <td className="py-3.5 text-slate-600 font-semibold">{lic.adminEmail}</td>
+                            <td className="py-3.5 font-bold text-slate-700">
+                              <span className="text-blue-600">{lic.used_seats}</span> / {lic.total_seats} Seats Used
+                            </td>
+                            <td className="py-3.5 text-slate-500">
+                              {new Date(lic.expires_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3.5">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                lic.is_active && new Date(lic.expires_at) > new Date()
+                                  ? 'bg-emerald-50 text-emerald-700' 
+                                  : 'bg-rose-50 text-rose-700'
+                              }`}>
+                                {lic.is_active && new Date(lic.expires_at) > new Date() ? 'Active' : 'Expired/Inactive'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* MODAL: Register School Admin & License */}
+              {isSchoolModalOpen && (
+                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-7 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 font-display">Register School Admin</h3>
+                    <p className="text-slate-500 text-xs mb-6">Create a school admin account. The credentials can be shared with the school coordinator.</p>
+                    
+                    <form onSubmit={handleAddSchoolAdmin} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">School Name</label>
+                        <input
+                          type="text" required
+                          value={newSchoolName}
+                          onChange={(e) => setNewSchoolName(e.target.value)}
+                          placeholder="e.g. Oakridge K-12 Academy"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Admin Email Address</label>
+                        <input
+                          type="email" required
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          placeholder="admin@oakridge.edu"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Admin Password</label>
+                        <input
+                          type="password" required minLength={6}
+                          value={newAdminPassword}
+                          onChange={(e) => setNewAdminPassword(e.target.value)}
+                          placeholder="Password (min 6 chars)"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Seat Quota</label>
+                          <input
+                            type="number" required min={1}
+                            value={newSchoolSeats}
+                            onChange={(e) => setNewSchoolSeats(parseInt(e.target.value, 10) || 0)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Duration (Months)</label>
+                          <input
+                            type="number" required min={1}
+                            value={newSchoolDurationMonths}
+                            onChange={(e) => setNewSchoolDurationMonths(parseInt(e.target.value, 10) || 0)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setIsSchoolModalOpen(false)}
+                          className="w-1/2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-lg text-xs transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={saving}
+                          className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs transition-all flex items-center justify-center cursor-pointer"
+                        >
+                          {saving ? <Loader className="w-4 h-4 animate-spin" /> : 'Register School'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: ACCESS CODES (School Admin Only) */}
+          {role === 'school_admin' && activeTab === 'codes' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 font-display">School Access Codes</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Generate codes for students to unlock premium simulated visual modules.</p>
+                </div>
+                <button
+                  onClick={() => setIsCodeModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Generate Access Code</span>
+                </button>
+              </div>
+
+              {/* License Status Card */}
+              {license && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-blue-50/50 border border-blue-100 rounded-2xl p-6">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">School Name</span>
+                    <span className="text-sm font-extrabold text-slate-900 block mt-1">{license.school_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seat License Quota</span>
+                    <span className="text-sm font-extrabold text-slate-900 block mt-1">
+                      <span className="text-blue-600">{license.used_seats}</span> / {license.total_seats} Seats Occupied
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">License Expiration</span>
+                    <span className="text-sm font-extrabold text-slate-900 block mt-1">
+                      {new Date(license.expires_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Codes list */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="pb-3">Access Code</th>
+                        <th className="pb-3">Redemption Usage Limit</th>
+                        <th className="pb-3">Enrollments Created</th>
+                        <th className="pb-3">Created On</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {schoolCodes.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-6 text-center text-slate-400">No school access codes generated yet.</td>
+                        </tr>
+                      ) : (
+                        schoolCodes.map((c: any) => (
+                          <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3.5 font-bold text-slate-900 uppercase tracking-wider text-sm text-blue-600">{c.code}</td>
+                            <td className="py-3.5 text-slate-600 font-semibold">{c.max_uses} max enrollments</td>
+                            <td className="py-3.5 font-bold text-slate-700">
+                              {c.current_uses} / {c.max_uses} Redeemed
+                            </td>
+                            <td className="py-3.5 text-slate-500">
+                              {new Date(c.created_at).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* MODAL: Generate Code */}
+              {isCodeModalOpen && (
+                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-7 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 font-display">Generate School Access Code</h3>
+                    <p className="text-slate-500 text-xs mb-6">Create a code students can redeem to claim a seat on your license.</p>
+                    
+                    <form onSubmit={handleCreateAccessCode} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Access Code text</label>
+                        <input
+                          type="text" required
+                          value={newCodeName}
+                          onChange={(e) => setNewCodeName(e.target.value)}
+                          placeholder="e.g. OAKRIDGE-STEM-2026"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Max Uses (Student Seats)</label>
+                        <input
+                          type="number" required min={1}
+                          value={newCodeMaxUses}
+                          onChange={(e) => setNewCodeMaxUses(parseInt(e.target.value, 10) || 0)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setIsCodeModalOpen(false)}
+                          className="w-1/2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-lg text-xs transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={saving}
+                          className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs transition-all flex items-center justify-center cursor-pointer"
+                        >
+                          {saving ? <Loader className="w-4 h-4 animate-spin" /> : 'Generate Code'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: STUDENT SEATS (School Admin Only) */}
+          {role === 'school_admin' && activeTab === 'students' && (
+            <div className="space-y-6">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 font-display">Student Seat Registrations</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Manage students currently using seats under your school license. Revoking a seat will revert their account to free tier access.</p>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="pb-3">Student Email</th>
+                        <th className="pb-3">Code Redeemed</th>
+                        <th className="pb-3">Date Joined</th>
+                        <th className="pb-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-6 text-center text-slate-400">No students currently enrolled in school seats.</td>
+                        </tr>
+                      ) : (
+                        students.map((student: any) => (
+                          <tr key={student.membershipId} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3.5 font-bold text-slate-900">{student.email}</td>
+                            <td className="py-3.5 text-blue-600 font-semibold uppercase">{student.code}</td>
+                            <td className="py-3.5 text-slate-500">
+                              {new Date(student.joinedAt).toLocaleDateString()}
+                            </td>
+                            <td className="py-3.5 text-right">
+                              <button
+                                onClick={() => handleRevokeStudentSeat(student.membershipId)}
+                                className="text-xs font-semibold text-rose-600 hover:text-rose-500 border border-rose-100 px-2 py-1 rounded hover:bg-rose-50 cursor-pointer"
+                              >
+                                Revoke Seat
                               </button>
                             </td>
                           </tr>
