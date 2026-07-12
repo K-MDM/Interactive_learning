@@ -7,13 +7,13 @@ import { useRouter } from 'next/navigation';
 import { 
   ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader, 
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
-  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit
+  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers
 } from 'lucide-react';
 
 export default function AdminConsole() {
   const supabase = createClient();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students' | 'taxonomy'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -36,6 +36,30 @@ export default function AdminConsole() {
   const [newSchoolName, setNewSchoolName] = useState('');
   const [newSchoolSeats, setNewSchoolSeats] = useState(100);
   const [newSchoolDurationMonths, setNewSchoolDurationMonths] = useState(12);
+
+  // Super Admin Taxonomy States
+  const [boards, setBoards] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+
+  // Taxonomy Modal States
+  const [isTaxonomyModalOpen, setIsTaxonomyModalOpen] = useState(false);
+  const [taxonomyModalType, setTaxonomyModalType] = useState<'board' | 'class' | 'subject'>('board');
+  const [editingTaxonomyItem, setEditingTaxonomyItem] = useState<any>(null);
+  const [isNewTaxonomyItem, setIsNewTaxonomyItem] = useState(true);
+
+  // Note-Taxonomy Modal States (for linking boards/classes/subjects to notes)
+  const [isNoteTaxonomyModalOpen, setIsNoteTaxonomyModalOpen] = useState(false);
+  const [activeNote, setActiveNote] = useState<any>(null);
+  const [activeNoteTaxonomy, setActiveNoteTaxonomy] = useState<any[]>([]);
+  
+  const [linkBoardIds, setLinkBoardIds] = useState<string[]>([]);
+  const [linkClassIds, setLinkClassIds] = useState<string[]>([]);
+  const [linkSubjectIds, setLinkSubjectIds] = useState<string[]>([]);
+
+  const [linkAllBoards, setLinkAllBoards] = useState(true);
+  const [linkAllClasses, setLinkAllClasses] = useState(true);
+  const [linkAllSubjects, setLinkAllSubjects] = useState(true);
 
   // Data States
   const [notes, setNotes] = useState<any[]>([]);
@@ -154,6 +178,13 @@ export default function AdminConsole() {
         const resLic = await fetch('/api/super/licenses');
         const dataLic = await resLic.json();
         setGlobalLicenses(dataLic.licenses || []);
+
+        // 6. Fetch taxonomy options
+        const resTax = await fetch('/api/flutter/taxonomy');
+        const dataTax = await resTax.json();
+        setBoards(dataTax.boards || []);
+        setClasses(dataTax.classes || []);
+        setSubjects(dataTax.subjects || []);
       } 
       else if (userRole === 'school_admin') {
         // Load School Admin local data
@@ -284,6 +315,175 @@ export default function AdminConsole() {
       loadAdminData();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to delete plan' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Taxonomy CRUD handlers
+  const handleSaveTaxonomyItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTaxonomyItem) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    const apiPath = `/api/super/${taxonomyModalType}s`;
+    const method = isNewTaxonomyItem ? 'POST' : 'PUT';
+
+    try {
+      const payload: Record<string, any> = {
+        name: editingTaxonomyItem.name,
+        slug: editingTaxonomyItem.slug,
+        sort_order: parseInt(editingTaxonomyItem.sort_order, 10) || 0,
+      };
+
+      if (!isNewTaxonomyItem) {
+        payload.id = editingTaxonomyItem.id;
+      }
+
+      if (taxonomyModalType === 'subject') {
+        payload.icon_emoji = editingTaxonomyItem.icon_emoji || '📘';
+      }
+
+      const res = await fetch(apiPath, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Refresh list
+      const resTax = await fetch('/api/flutter/taxonomy');
+      const dataTax = await resTax.json();
+      setBoards(dataTax.boards || []);
+      setClasses(dataTax.classes || []);
+      setSubjects(dataTax.subjects || []);
+
+      setIsTaxonomyModalOpen(false);
+      setEditingTaxonomyItem(null);
+      setMessage({ type: 'success', text: `Taxonomy item saved successfully.` });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save taxonomy item' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTaxonomyItem = async (type: 'board' | 'class' | 'subject', id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${type} "${name}"?`)) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch(`/api/super/${type}s?id=${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Refresh lists
+      const resTax = await fetch('/api/flutter/taxonomy');
+      const dataTax = await resTax.json();
+      setBoards(dataTax.boards || []);
+      setClasses(dataTax.classes || []);
+      setSubjects(dataTax.subjects || []);
+
+      setMessage({ type: 'success', text: `${type} deleted successfully.` });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || `Failed to delete ${type}` });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Note-Taxonomy Linkage handlers
+  const handleOpenNoteTaxonomyModal = async (note: any) => {
+    setActiveNote(note);
+    setIsNoteTaxonomyModalOpen(true);
+    setMessage(null);
+    setLinkBoardIds([]);
+    setLinkClassIds([]);
+    setLinkSubjectIds([]);
+    setLinkAllBoards(true);
+    setLinkAllClasses(true);
+    setLinkAllSubjects(true);
+    try {
+      const res = await fetch(`/api/super/notes/${note.id}/taxonomy`);
+      const data = await res.json();
+      setActiveNoteTaxonomy(data.taxonomy || []);
+    } catch (err) {
+      console.error('Failed to load note taxonomy associations', err);
+    }
+  };
+
+  const handleLinkNoteTaxonomy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeNote) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    const finalBoardIds = linkAllBoards ? [] : linkBoardIds;
+    const finalClassIds = linkAllClasses ? [] : linkClassIds;
+    const finalSubjectIds = linkAllSubjects ? [] : linkSubjectIds;
+
+    try {
+      const res = await fetch(`/api/super/notes/${activeNote.id}/taxonomy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          board_ids: finalBoardIds,
+          class_ids: finalClassIds,
+          subject_ids: finalSubjectIds
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Reload assigned list
+      const resTax = await fetch(`/api/super/notes/${activeNote.id}/taxonomy`);
+      const dataTax = await resTax.json();
+      setActiveNoteTaxonomy(dataTax.taxonomy || []);
+      
+      setLinkBoardIds([]);
+      setLinkClassIds([]);
+      setLinkSubjectIds([]);
+      setLinkAllBoards(true);
+      setLinkAllClasses(true);
+      setLinkAllSubjects(true);
+      setMessage({ type: 'success', text: 'Categories linked to lecture successfully.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to add taxonomy mapping' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnlinkNoteTaxonomy = async (tagId: string) => {
+    if (!activeNote) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch(`/api/super/notes/${activeNote.id}/taxonomy?tag_id=${tagId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Reload assigned list
+      const resTax = await fetch(`/api/super/notes/${activeNote.id}/taxonomy`);
+      const dataTax = await resTax.json();
+      setActiveNoteTaxonomy(dataTax.taxonomy || []);
+
+      setMessage({ type: 'success', text: 'Category mapping removed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to delete taxonomy mapping' });
     } finally {
       setSaving(false);
     }
@@ -532,7 +732,8 @@ export default function AdminConsole() {
                 { id: 'notes', label: 'Interactive Lectures', icon: <BookOpen className="w-4 h-4" /> },
                 { id: 'plans', label: 'Subscription Plans', icon: <DollarSign className="w-4 h-4" /> },
                 { id: 'coupons', label: 'Coupon Codes', icon: <Tag className="w-4 h-4" /> },
-                { id: 'settings', label: 'System Configs', icon: <Settings className="w-4 h-4" /> }
+                { id: 'settings', label: 'System Configs', icon: <Settings className="w-4 h-4" /> },
+                { id: 'taxonomy', label: 'Taxonomy Data', icon: <Layers className="w-4 h-4" /> }
               ].map((menuItem) => (
                 <button
                   key={menuItem.id}
@@ -880,26 +1081,36 @@ export default function AdminConsole() {
                         <span>Uploaded: {new Date(note.created_at).toLocaleDateString()}</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <a 
-                          href={getTestLink(note.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
-                        >
-                          <Link2 className="w-3.5 h-3.5" />
-                          <span>Test Link</span>
-                        </a>
-                        <button 
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <a 
+                            href={getTestLink(note.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                          >
+                            <Link2 className="w-3.5 h-3.5" />
+                            <span>Test Link</span>
+                          </a>
+                          <button 
+                            type="button"
+                            onClick={() => toggleNoteDemo(note.id, note.is_demo)}
+                            className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${
+                              note.is_demo 
+                                ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            {note.is_demo ? 'Disable Demo' : 'Make Demo'}
+                          </button>
+                        </div>
+                        <button
                           type="button"
-                          onClick={() => toggleNoteDemo(note.id, note.is_demo)}
-                          className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${
-                            note.is_demo 
-                              ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
-                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                          }`}
+                          onClick={() => handleOpenNoteTaxonomyModal(note)}
+                          className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-650 font-bold py-2 px-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
                         >
-                          {note.is_demo ? 'Disable Demo' : 'Make Demo'}
+                          <Layers className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Categorization Mapping</span>
                         </button>
                       </div>
                     </div>
@@ -1740,6 +1951,481 @@ export default function AdminConsole() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: TAXONOMY DATA (Super Admin Only) */}
+          {role === 'super_admin' && activeTab === 'taxonomy' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 font-display">Manage Taxonomy Structure</h3>
+                <p className="text-slate-500 text-xs mt-0.5">Define boards, classes, and subjects that categorize interactive visual learning modules.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* BOARDS PANEL */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                      <span className="font-bold text-slate-800 text-sm font-display">Boards</span>
+                      <button
+                        onClick={() => {
+                          setTaxonomyModalType('board');
+                          setEditingTaxonomyItem({ name: '', slug: '', sort_order: 0 });
+                          setIsNewTaxonomyItem(true);
+                          setIsTaxonomyModalOpen(true);
+                        }}
+                        className="bg-blue-55 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 max-h-[450px] overflow-y-auto pr-1">
+                      {boards.length === 0 ? (
+                        <div className="py-6 text-center text-slate-400 text-xs">No boards defined yet.</div>
+                      ) : (
+                        boards.map((board) => (
+                          <div key={board.id} className="py-3 flex justify-between items-center group">
+                            <div>
+                              <span className="text-xs font-semibold text-slate-800 block">{board.name}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">slug: {board.slug}</span>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setTaxonomyModalType('board');
+                                  setEditingTaxonomyItem({ ...board });
+                                  setIsNewTaxonomyItem(false);
+                                  setIsTaxonomyModalOpen(true);
+                                }}
+                                className="p-1 text-slate-500 hover:text-blue-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTaxonomyItem('board', board.id, board.name)}
+                                className="p-1 text-slate-550 hover:text-rose-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CLASSES PANEL */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                      <span className="font-bold text-slate-800 text-sm font-display">Classes</span>
+                      <button
+                        onClick={() => {
+                          setTaxonomyModalType('class');
+                          setEditingTaxonomyItem({ name: '', slug: '', sort_order: 0 });
+                          setIsNewTaxonomyItem(true);
+                          setIsTaxonomyModalOpen(true);
+                        }}
+                        className="bg-blue-55 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 max-h-[450px] overflow-y-auto pr-1">
+                      {classes.length === 0 ? (
+                        <div className="py-6 text-center text-slate-400 text-xs">No classes defined yet.</div>
+                      ) : (
+                        classes.map((c) => (
+                          <div key={c.id} className="py-3 flex justify-between items-center group">
+                            <div>
+                              <span className="text-xs font-semibold text-slate-800 block">{c.name}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">slug: {c.slug}</span>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setTaxonomyModalType('class');
+                                  setEditingTaxonomyItem({ ...c });
+                                  setIsNewTaxonomyItem(false);
+                                  setIsTaxonomyModalOpen(true);
+                                }}
+                                className="p-1 text-slate-550 hover:text-blue-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTaxonomyItem('class', c.id, c.name)}
+                                className="p-1 text-slate-550 hover:text-rose-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* SUBJECTS PANEL */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                      <span className="font-bold text-slate-800 text-sm font-display">Subjects</span>
+                      <button
+                        onClick={() => {
+                          setTaxonomyModalType('subject');
+                          setEditingTaxonomyItem({ name: '', slug: '', icon_emoji: '📘', sort_order: 0 });
+                          setIsNewTaxonomyItem(true);
+                          setIsTaxonomyModalOpen(true);
+                        }}
+                        className="bg-blue-55 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 max-h-[450px] overflow-y-auto pr-1">
+                      {subjects.length === 0 ? (
+                        <div className="py-6 text-center text-slate-400 text-xs">No subjects defined yet.</div>
+                      ) : (
+                        subjects.map((sub) => (
+                          <div key={sub.id} className="py-3 flex justify-between items-center group">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg shrink-0">{sub.icon_emoji || '📘'}</span>
+                              <div>
+                                <span className="text-xs font-semibold text-slate-800 block">{sub.name}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">slug: {sub.slug}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setTaxonomyModalType('subject');
+                                  setEditingTaxonomyItem({ ...sub });
+                                  setIsNewTaxonomyItem(false);
+                                  setIsTaxonomyModalOpen(true);
+                                }}
+                                className="p-1 text-slate-550 hover:text-blue-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTaxonomyItem('subject', sub.id, sub.name)}
+                                className="p-1 text-slate-555 hover:text-rose-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* TAXONOMY CREATE/EDIT MODAL */}
+              {isTaxonomyModalOpen && (
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      <div>
+                        <h4 className="text-lg font-bold text-slate-900 font-display capitalize">
+                          {isNewTaxonomyItem ? `Create ${taxonomyModalType}` : `Edit ${taxonomyModalType}`}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Enter details to define taxonomy item.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsTaxonomyModalOpen(false);
+                          setEditingTaxonomyItem(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-655 text-xl font-bold cursor-pointer transition-colors p-1"
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveTaxonomyItem} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-455 uppercase tracking-wider mb-1.5">Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. CBSE, Grade 10, Physics"
+                          value={editingTaxonomyItem?.name || ''}
+                          onChange={(e) => setEditingTaxonomyItem({ ...editingTaxonomyItem, name: e.target.value })}
+                          required
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-455 uppercase tracking-wider mb-1.5">Slug</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. cbse, grade-10, physics"
+                          value={editingTaxonomyItem?.slug || ''}
+                          onChange={(e) => setEditingTaxonomyItem({ ...editingTaxonomyItem, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                          required
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      {taxonomyModalType === 'subject' && (
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-455 uppercase tracking-wider mb-1.5">Icon Emoji</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 📙, 🔬, 🧬"
+                            value={editingTaxonomyItem?.icon_emoji || ''}
+                            onChange={(e) => setEditingTaxonomyItem({ ...editingTaxonomyItem, icon_emoji: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-455 uppercase tracking-wider mb-1.5">Sort Order</label>
+                        <input
+                          type="number"
+                          value={editingTaxonomyItem?.sort_order ?? 0}
+                          onChange={(e) => setEditingTaxonomyItem({ ...editingTaxonomyItem, sort_order: parseInt(e.target.value, 10) || 0 })}
+                          required
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsTaxonomyModalOpen(false);
+                            setEditingTaxonomyItem(null);
+                          }}
+                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={saving}
+                          className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          {saving ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Save Item</span>}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* NOTE TAXONOMY MAPPING MODAL */}
+          {isNoteTaxonomyModalOpen && activeNote && (
+            <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6 relative animate-in zoom-in-95 duration-150">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 font-display">Manage Categories: {activeNote.title}</h3>
+                    <p className="text-slate-500 text-xs mt-0.5">Map this visual module to boards, classes, and subjects.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsNoteTaxonomyModalOpen(false);
+                      setActiveNote(null);
+                    }}
+                    className="text-slate-400 hover:text-slate-655 text-xl font-bold cursor-pointer p-1"
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                {/* Currently Linked Taxonomy Tags */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-extrabold text-slate-455 uppercase tracking-wider">Assigned Classifications</h4>
+                  {activeNoteTaxonomy.length === 0 ? (
+                    <div className="bg-slate-50 rounded-xl p-4 text-center text-xs text-slate-450 border border-slate-200">
+                      No board/class/subject classifications linked to this note yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                      {activeNoteTaxonomy.map((tax) => (
+                        <div key={tax.id} className="flex justify-between items-center bg-slate-50 hover:bg-slate-100/80 p-2.5 rounded-xl border border-slate-200 text-xs transition-colors">
+                          <div className="flex flex-wrap gap-1 items-center font-medium text-slate-700">
+                            {tax.boards && <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[10px] font-bold">{tax.boards.name}</span>}
+                            {tax.classes && <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[10px] font-bold">{tax.classes.name}</span>}
+                            {tax.subjects && <span className="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded text-[10px] font-bold">{tax.subjects.icon_emoji} {tax.subjects.name}</span>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleUnlinkNoteTaxonomy(tax.id)}
+                            className="text-[10px] text-rose-600 hover:text-rose-500 font-bold border border-rose-100 hover:bg-rose-50 px-2 py-1 rounded transition-colors cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Form to Assign New Tag combo */}
+                <form onSubmit={handleLinkNoteTaxonomy} className="space-y-4 border-t border-slate-150 pt-4">
+                  <h4 className="text-[10px] font-extrabold text-slate-455 uppercase tracking-wider">Add Classification Category</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    {/* BOARDS LIST */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                      <div className="flex justify-between items-center border-b border-slate-250 pb-1">
+                        <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Boards</span>
+                        <label className="flex items-center gap-1 text-[10px] text-blue-600 font-extrabold cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={linkAllBoards}
+                            onChange={(e) => {
+                              setLinkAllBoards(e.target.checked);
+                              if (e.target.checked) setLinkBoardIds([]);
+                            }}
+                            className="w-3 h-3 rounded"
+                          />
+                          <span>All</span>
+                        </label>
+                      </div>
+                      {!linkAllBoards && (
+                        <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                          {boards.map(b => (
+                            <label key={b.id} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-650 cursor-pointer hover:text-slate-900">
+                              <input
+                                type="checkbox"
+                                checked={linkBoardIds.includes(b.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setLinkBoardIds([...linkBoardIds, b.id]);
+                                  } else {
+                                    setLinkBoardIds(linkBoardIds.filter(id => id !== b.id));
+                                  }
+                                }}
+                                className="w-3 h-3 rounded text-blue-600"
+                              />
+                              <span>{b.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {linkAllBoards && (
+                        <p className="text-[10px] text-slate-400 italic py-1">All Boards (wildcard)</p>
+                      )}
+                    </div>
+
+                    {/* CLASSES LIST */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                      <div className="flex justify-between items-center border-b border-slate-250 pb-1">
+                        <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Classes</span>
+                        <label className="flex items-center gap-1 text-[10px] text-blue-600 font-extrabold cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={linkAllClasses}
+                            onChange={(e) => {
+                              setLinkAllClasses(e.target.checked);
+                              if (e.target.checked) setLinkClassIds([]);
+                            }}
+                            className="w-3 h-3 rounded"
+                          />
+                          <span>All</span>
+                        </label>
+                      </div>
+                      {!linkAllClasses && (
+                        <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                          {classes.map(c => (
+                            <label key={c.id} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-650 cursor-pointer hover:text-slate-900">
+                              <input
+                                type="checkbox"
+                                checked={linkClassIds.includes(c.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setLinkClassIds([...linkClassIds, c.id]);
+                                  } else {
+                                    setLinkClassIds(linkClassIds.filter(id => id !== c.id));
+                                  }
+                                }}
+                                className="w-3 h-3 rounded text-blue-600"
+                              />
+                              <span>{c.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {linkAllClasses && (
+                        <p className="text-[10px] text-slate-400 italic py-1">All Classes (wildcard)</p>
+                      )}
+                    </div>
+
+                    {/* SUBJECTS LIST */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                      <div className="flex justify-between items-center border-b border-slate-250 pb-1">
+                        <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Subjects</span>
+                        <label className="flex items-center gap-1 text-[10px] text-blue-600 font-extrabold cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={linkAllSubjects}
+                            onChange={(e) => {
+                              setLinkAllSubjects(e.target.checked);
+                              if (e.target.checked) setLinkSubjectIds([]);
+                            }}
+                            className="w-3 h-3 rounded"
+                          />
+                          <span>All</span>
+                        </label>
+                      </div>
+                      {!linkAllSubjects && (
+                        <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                          {subjects.map(s => (
+                            <label key={s.id} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-650 cursor-pointer hover:text-slate-900">
+                              <input
+                                type="checkbox"
+                                checked={linkSubjectIds.includes(s.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setLinkSubjectIds([...linkSubjectIds, s.id]);
+                                  } else {
+                                    setLinkSubjectIds(linkSubjectIds.filter(id => id !== s.id));
+                                  }
+                                }}
+                                className="w-3 h-3 rounded text-blue-600"
+                              />
+                              <span>{s.icon_emoji} {s.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {linkAllSubjects && (
+                        <p className="text-[10px] text-slate-400 italic py-1">All Subjects (wildcard)</p>
+                      )}
+                    </div>
+
+                  </div>
+
+                  <div className="flex justify-end pt-3">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white font-bold py-2 px-4 rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {saving ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Add Mapping</span>}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

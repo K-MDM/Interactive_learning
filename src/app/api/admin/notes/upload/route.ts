@@ -22,6 +22,57 @@ export async function POST(request: Request) {
     const isDemoStr = formData.get('isDemo') as string;
     const isDemo = isDemoStr === 'true';
 
+    // Parse lists of board, class, subject IDs
+    const boardIdsStr = formData.get('boardIds') as string;
+    const classIdsStr = formData.get('classIds') as string;
+    const subjectIdsStr = formData.get('subjectIds') as string;
+
+    let boardIds: (string | null)[] = [null];
+    let classIds: (string | null)[] = [null];
+    let subjectIds: (string | null)[] = [null];
+
+    if (boardIdsStr) {
+      try {
+        const parsed = JSON.parse(boardIdsStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          boardIds = parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse boardIds JSON', e);
+      }
+    } else {
+      const oldBoardId = formData.get('boardId') as string;
+      if (oldBoardId) boardIds = [oldBoardId];
+    }
+
+    if (classIdsStr) {
+      try {
+        const parsed = JSON.parse(classIdsStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          classIds = parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse classIds JSON', e);
+      }
+    } else {
+      const oldClassId = formData.get('classId') as string;
+      if (oldClassId) classIds = [oldClassId];
+    }
+
+    if (subjectIdsStr) {
+      try {
+        const parsed = JSON.parse(subjectIdsStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          subjectIds = parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse subjectIds JSON', e);
+      }
+    } else {
+      const oldSubjectId = formData.get('subjectId') as string;
+      if (oldSubjectId) subjectIds = [oldSubjectId];
+    }
+
     if (!title || !file) {
       return NextResponse.json(
         { error: 'Title and HTML file are required' },
@@ -75,6 +126,49 @@ export async function POST(request: Request) {
         { error: 'Failed to save note metadata to database' },
         { status: 500 }
       );
+    }
+
+    // 3. Generate and Insert cross-product note_taxonomy combinations
+    const taxonomyRows: any[] = [];
+    for (const bId of boardIds) {
+      for (const cId of classIds) {
+        for (const sId of subjectIds) {
+          taxonomyRows.push({
+            note_id: note.id,
+            board_id: bId || null,
+            class_id: cId || null,
+            subject_id: sId || null,
+          });
+        }
+      }
+    }
+
+    // Dedup combination rows just in case
+    const uniqueKeys = new Set<string>();
+    const uniqueRows: any[] = [];
+    for (const row of taxonomyRows) {
+      const key = `${row.board_id}-${row.class_id}-${row.subject_id}`;
+      if (!uniqueKeys.has(key)) {
+        uniqueKeys.add(key);
+        uniqueRows.push(row);
+      }
+    }
+
+    if (uniqueRows.length > 0) {
+      const { error: taxError } = await adminClient
+        .from('note_taxonomy')
+        .insert(uniqueRows);
+
+      if (taxError) {
+        console.error('Taxonomy Mapping Insert Error:', taxError);
+        // Rollback: Delete note and storage file
+        await adminClient.from('notes').delete().eq('id', note.id);
+        await adminClient.storage.from('interactive-notes').remove([storagePath]);
+        return NextResponse.json(
+          { error: 'Failed to assign note taxonomy categorization' },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ success: true, note });
