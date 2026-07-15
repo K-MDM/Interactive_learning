@@ -18,11 +18,13 @@ export default function UploadPage() {
   const [boards, setBoards] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [contentTypes, setContentTypes] = useState<any[]>([]);
   
   // Selected category IDs
   const [selectedBoardIds, setSelectedBoardIds] = useState<string[]>([]);
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
+  const [selectedContentTypeIds, setSelectedContentTypeIds] = useState<string[]>([]);
 
   // Toggles for wildcards ("All")
   const [selectAllBoards, setSelectAllBoards] = useState(true);
@@ -37,6 +39,7 @@ export default function UploadPage() {
         setBoards(data.boards || []);
         setClasses(data.classes || []);
         setSubjects(data.subjects || []);
+        setContentTypes(data.content_types || []);
       } catch (err) {
         console.error('Failed to load taxonomy options', err);
       }
@@ -107,6 +110,7 @@ export default function UploadPage() {
       formData.append('boardIds', JSON.stringify(finalBoardIds));
       formData.append('classIds', JSON.stringify(finalClassIds));
       formData.append('subjectIds', JSON.stringify(finalSubjectIds));
+      formData.append('contentTypeIds', JSON.stringify(selectedContentTypeIds));
 
       try {
         const res = await fetch('/api/admin/notes/upload', {
@@ -138,6 +142,7 @@ export default function UploadPage() {
       setSelectedBoardIds([]);
       setSelectedClassIds([]);
       setSelectedSubjectIds([]);
+      setSelectedContentTypeIds([]);
       setSelectAllBoards(true);
       setSelectAllClasses(true);
       setSelectAllSubjects(true);
@@ -228,7 +233,7 @@ export default function UploadPage() {
             </div>
 
             {/* Taxonomy Checkbox Lists */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
               {/* BOARDS */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
@@ -363,6 +368,33 @@ export default function UploadPage() {
                 {selectAllSubjects && (
                   <p className="text-[11px] text-slate-400 italic py-1">All Subjects (wildcard)</p>
                 )}
+              </div>
+
+              {/* CONTENT TYPES */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Content Types</span>
+                </div>
+                <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                  {contentTypes.map(ct => (
+                    <label key={ct.id} className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer hover:text-slate-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedContentTypeIds.includes(ct.id)}
+                        disabled={loading}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedContentTypeIds([...selectedContentTypeIds, ct.id]);
+                          } else {
+                            setSelectedContentTypeIds(selectedContentTypeIds.filter(id => id !== ct.id));
+                          }
+                        }}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+                      />
+                      <span>{ct.icon_emoji ? `${ct.icon_emoji} ` : ''}{ct.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
             </div>

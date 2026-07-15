@@ -26,10 +26,12 @@ export async function POST(request: Request) {
     const boardIdsStr = formData.get('boardIds') as string;
     const classIdsStr = formData.get('classIds') as string;
     const subjectIdsStr = formData.get('subjectIds') as string;
+    const contentTypeIdsStr = formData.get('contentTypeIds') as string;
 
     let boardIds: (string | null)[] = [null];
     let classIds: (string | null)[] = [null];
     let subjectIds: (string | null)[] = [null];
+    let contentTypeIds: string[] = [];
 
     if (boardIdsStr) {
       try {
@@ -71,6 +73,17 @@ export async function POST(request: Request) {
     } else {
       const oldSubjectId = formData.get('subjectId') as string;
       if (oldSubjectId) subjectIds = [oldSubjectId];
+    }
+
+    if (contentTypeIdsStr) {
+      try {
+        const parsed = JSON.parse(contentTypeIdsStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          contentTypeIds = parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse contentTypeIds JSON', e);
+      }
     }
 
     if (!title || !file) {
@@ -166,6 +179,30 @@ export async function POST(request: Request) {
         await adminClient.storage.from('interactive-notes').remove([storagePath]);
         return NextResponse.json(
           { error: 'Failed to assign note taxonomy categorization' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 4. Insert Content Type mappings
+    if (contentTypeIds.length > 0) {
+      const contentTypeRows = contentTypeIds.map(ctId => ({
+        note_id: note.id,
+        content_type_id: ctId
+      }));
+
+      const { error: ctError } = await adminClient
+        .from('note_content_types')
+        .insert(contentTypeRows);
+
+      if (ctError) {
+        console.error('Content Type Mapping Insert Error:', ctError);
+        // Rollback: Delete taxonomy mappings, note, and storage file
+        await adminClient.from('note_taxonomy').delete().eq('note_id', note.id);
+        await adminClient.from('notes').delete().eq('id', note.id);
+        await adminClient.storage.from('interactive-notes').remove([storagePath]);
+        return NextResponse.json(
+          { error: 'Failed to assign note content types categorization' },
           { status: 500 }
         );
       }
