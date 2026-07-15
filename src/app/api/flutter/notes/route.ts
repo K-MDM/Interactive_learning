@@ -22,19 +22,21 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const boardId    = searchParams.get('board_id');
-    const classId    = searchParams.get('class_id');
-    const subjectId  = searchParams.get('subject_id');
-    const search     = searchParams.get('search')?.trim();
-    const isDemo     = searchParams.get('is_demo');
-    const page       = Math.max(1, parseInt(searchParams.get('page')  || '1'));
-    const limit      = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
-    const offset     = (page - 1) * limit;
+    const boardId       = searchParams.get('board_id');
+    const classId       = searchParams.get('class_id');
+    const subjectId     = searchParams.get('subject_id');
+    const contentTypeId = searchParams.get('content_type_id');
+    const search        = searchParams.get('search')?.trim();
+    const isDemo        = searchParams.get('is_demo');
+    const page          = Math.max(1, parseInt(searchParams.get('page')  || '1'));
+    const limit         = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const offset        = (page - 1) * limit;
 
     const adminClient = createAdminClient();
 
     // Base select — never return storage_path to the public listing
     const hasFilter = !!(boardId || classId || subjectId);
+    const hasContentTypeFilter = !!contentTypeId;
     const selectStr = `
       id,
       title,
@@ -48,6 +50,10 @@ export async function GET(request: Request) {
         boards   ( id, name, slug ),
         classes  ( id, name, slug ),
         subjects ( id, name, slug, icon_emoji )
+      ),
+      note_content_types${hasContentTypeFilter ? '!inner' : ''} (
+        content_type_id,
+        content_types ( id, name, slug, icon_emoji, color_hex )
       )
     `;
 
@@ -69,6 +75,9 @@ export async function GET(request: Request) {
     }
     if (subjectId) {
       query = query.or(`subject_id.eq.${subjectId},subject_id.is.null`, { foreignTable: 'note_taxonomy' });
+    }
+    if (contentTypeId) {
+      query = query.eq('note_content_types.content_type_id', contentTypeId);
     }
 
     // Full-text search via tsvector
@@ -147,6 +156,13 @@ export async function GET(request: Request) {
           class:   t.classes  ? { id: t.classes.id,  name: t.classes.name,  slug: t.classes.slug }  : null,
           subject: t.subjects ? { id: t.subjects.id, name: t.subjects.name, slug: t.subjects.slug, icon_emoji: t.subjects.icon_emoji } : null,
         })),
+        content_types: (note.note_content_types || []).map((ct: any) => ({
+          id:         ct.content_types?.id,
+          name:       ct.content_types?.name,
+          slug:       ct.content_types?.slug,
+          icon_emoji: ct.content_types?.icon_emoji,
+          color_hex:  ct.content_types?.color_hex,
+        })).filter((x: any) => x.id),
       };
     });
 

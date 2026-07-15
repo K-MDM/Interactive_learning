@@ -41,10 +41,11 @@ export default function AdminConsole() {
   const [boards, setBoards] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [contentTypes, setContentTypes] = useState<any[]>([]);
 
   // Taxonomy Modal States
   const [isTaxonomyModalOpen, setIsTaxonomyModalOpen] = useState(false);
-  const [taxonomyModalType, setTaxonomyModalType] = useState<'board' | 'class' | 'subject'>('board');
+  const [taxonomyModalType, setTaxonomyModalType] = useState<'board' | 'class' | 'subject' | 'content-type'>('board');
   const [editingTaxonomyItem, setEditingTaxonomyItem] = useState<any>(null);
   const [isNewTaxonomyItem, setIsNewTaxonomyItem] = useState(true);
 
@@ -52,6 +53,7 @@ export default function AdminConsole() {
   const [isNoteTaxonomyModalOpen, setIsNoteTaxonomyModalOpen] = useState(false);
   const [activeNote, setActiveNote] = useState<any>(null);
   const [activeNoteTaxonomy, setActiveNoteTaxonomy] = useState<any[]>([]);
+  const [activeNoteContentTypes, setActiveNoteContentTypes] = useState<any[]>([]);
   
   const [linkBoardIds, setLinkBoardIds] = useState<string[]>([]);
   const [linkClassIds, setLinkClassIds] = useState<string[]>([]);
@@ -185,6 +187,7 @@ export default function AdminConsole() {
         setBoards(dataTax.boards || []);
         setClasses(dataTax.classes || []);
         setSubjects(dataTax.subjects || []);
+        setContentTypes(dataTax.content_types || []);
       } 
       else if (userRole === 'school_admin') {
         // Load School Admin local data
@@ -328,7 +331,12 @@ export default function AdminConsole() {
     setSaving(true);
     setMessage(null);
 
-    const apiPath = `/api/super/${taxonomyModalType}s`;
+    let apiPath = `/api/super/${taxonomyModalType}s`;
+    if (taxonomyModalType === 'class') {
+      apiPath = '/api/super/classes';
+    } else if (taxonomyModalType === 'content-type') {
+      apiPath = '/api/super/content-types';
+    }
     const method = isNewTaxonomyItem ? 'POST' : 'PUT';
 
     try {
@@ -342,8 +350,12 @@ export default function AdminConsole() {
         payload.id = editingTaxonomyItem.id;
       }
 
-      if (taxonomyModalType === 'subject') {
+      if (taxonomyModalType === 'subject' || taxonomyModalType === 'content-type') {
         payload.icon_emoji = editingTaxonomyItem.icon_emoji || '📘';
+      }
+
+      if (taxonomyModalType === 'content-type') {
+        payload.color_hex = editingTaxonomyItem.color_hex || '#6C63FF';
       }
 
       const res = await fetch(apiPath, {
@@ -361,6 +373,7 @@ export default function AdminConsole() {
       setBoards(dataTax.boards || []);
       setClasses(dataTax.classes || []);
       setSubjects(dataTax.subjects || []);
+      setContentTypes(dataTax.content_types || []);
 
       setIsTaxonomyModalOpen(false);
       setEditingTaxonomyItem(null);
@@ -372,14 +385,21 @@ export default function AdminConsole() {
     }
   };
 
-  const handleDeleteTaxonomyItem = async (type: 'board' | 'class' | 'subject', id: string, name: string) => {
+  const handleDeleteTaxonomyItem = async (type: 'board' | 'class' | 'subject' | 'content-type', id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${type} "${name}"?`)) return;
 
     setSaving(true);
     setMessage(null);
 
+    let apiPath = `/api/super/${type}s`;
+    if (type === 'class') {
+      apiPath = '/api/super/classes';
+    } else if (type === 'content-type') {
+      apiPath = '/api/super/content-types';
+    }
+
     try {
-      const res = await fetch(`/api/super/${type}s?id=${id}`, {
+      const res = await fetch(`${apiPath}?id=${id}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -391,6 +411,7 @@ export default function AdminConsole() {
       setBoards(dataTax.boards || []);
       setClasses(dataTax.classes || []);
       setSubjects(dataTax.subjects || []);
+      setContentTypes(dataTax.content_types || []);
 
       setMessage({ type: 'success', text: `${type} deleted successfully.` });
     } catch (err: any) {
@@ -415,8 +436,60 @@ export default function AdminConsole() {
       const res = await fetch(`/api/super/notes/${note.id}/taxonomy`);
       const data = await res.json();
       setActiveNoteTaxonomy(data.taxonomy || []);
+
+      const resCt = await fetch(`/api/super/notes/${note.id}/content-types`);
+      const dataCt = await resCt.json();
+      setActiveNoteContentTypes(dataCt.content_types || []);
     } catch (err) {
       console.error('Failed to load note taxonomy associations', err);
+    }
+  };
+
+  const handleLinkContentType = async (contentTypeId: string) => {
+    if (!activeNote) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/super/notes/${activeNote.id}/content-types`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content_type_id: contentTypeId })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Refresh list
+      const resCt = await fetch(`/api/super/notes/${activeNote.id}/content-types`);
+      const dataCt = await resCt.json();
+      setActiveNoteContentTypes(dataCt.content_types || []);
+      setMessage({ type: 'success', text: 'Content type linked successfully.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to link content type' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnlinkContentType = async (contentTypeId: string) => {
+    if (!activeNote) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/super/notes/${activeNote.id}/content-types?content_type_id=${contentTypeId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Refresh list
+      const resCt = await fetch(`/api/super/notes/${activeNote.id}/content-types`);
+      const dataCt = await resCt.json();
+      setActiveNoteContentTypes(dataCt.content_types || []);
+      setMessage({ type: 'success', text: 'Content type unlinked.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to unlink content type' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1963,7 +2036,7 @@ export default function AdminConsole() {
                 <p className="text-slate-500 text-xs mt-0.5">Define boards, classes, and subjects that categorize interactive visual learning modules.</p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 
                 {/* BOARDS PANEL */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
@@ -2130,6 +2203,75 @@ export default function AdminConsole() {
                   </div>
                 </div>
 
+                {/* CONTENT TYPES PANEL */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                      <span className="font-bold text-slate-800 text-sm font-display">Content Types</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTaxonomyModalType('content-type');
+                          setEditingTaxonomyItem({ name: '', slug: '', icon_emoji: '🎮', color_hex: '#10B981', sort_order: 0 });
+                          setIsNewTaxonomyItem(true);
+                          setIsTaxonomyModalOpen(true);
+                        }}
+                        className="bg-blue-55 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 max-h-[450px] overflow-y-auto pr-1">
+                      {contentTypes.length === 0 ? (
+                        <div className="py-6 text-center text-slate-400 text-xs">No content types defined yet.</div>
+                      ) : (
+                        contentTypes.map((ct) => (
+                          <div key={ct.id} className="py-3 flex justify-between items-center group">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg shrink-0">{ct.icon_emoji || '📖'}</span>
+                              <div>
+                                <span className="text-xs font-semibold text-slate-800 block">{ct.name}</span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] text-slate-400 font-mono">slug: {ct.slug}</span>
+                                  {ct.color_hex && (
+                                    <span 
+                                      className="w-2 h-2 rounded-full inline-block" 
+                                      style={{ backgroundColor: ct.color_hex }}
+                                      title={ct.color_hex}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTaxonomyModalType('content-type');
+                                  setEditingTaxonomyItem({ ...ct });
+                                  setIsNewTaxonomyItem(false);
+                                  setIsTaxonomyModalOpen(true);
+                                }}
+                                className="p-1 text-slate-550 hover:text-blue-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTaxonomyItem('content-type', ct.id, ct.name)}
+                                className="p-1 text-slate-555 hover:text-rose-600 rounded hover:bg-slate-55 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* TAXONOMY CREATE/EDIT MODAL */}
@@ -2180,14 +2322,27 @@ export default function AdminConsole() {
                         />
                       </div>
 
-                      {taxonomyModalType === 'subject' && (
+                      {(taxonomyModalType === 'subject' || taxonomyModalType === 'content-type') && (
                         <div>
                           <label className="block text-[10px] font-extrabold text-slate-455 uppercase tracking-wider mb-1.5">Icon Emoji</label>
                           <input
                             type="text"
-                            placeholder="e.g. 📙, 🔬, 🧬"
+                            placeholder="e.g. 📙, 🔬, 🎮"
                             value={editingTaxonomyItem?.icon_emoji || ''}
                             onChange={(e) => setEditingTaxonomyItem({ ...editingTaxonomyItem, icon_emoji: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      )}
+
+                      {taxonomyModalType === 'content-type' && (
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-455 uppercase tracking-wider mb-1.5">Color Hex</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. #6C63FF, #10B981"
+                            value={editingTaxonomyItem?.color_hex || ''}
+                            onChange={(e) => setEditingTaxonomyItem({ ...editingTaxonomyItem, color_hex: e.target.value })}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
                           />
                         </div>
@@ -2233,7 +2388,7 @@ export default function AdminConsole() {
           {/* NOTE TAXONOMY MAPPING MODAL */}
           {isNoteTaxonomyModalOpen && activeNote && (
             <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-              <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6 relative animate-in zoom-in-95 duration-150">
+              <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 md:p-8 space-y-6 relative animate-in zoom-in-95 duration-150">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 font-display">Manage Categories: {activeNote.title}</h3>
@@ -2279,11 +2434,44 @@ export default function AdminConsole() {
                   )}
                 </div>
 
+                {/* Currently Linked Content Types */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-extrabold text-slate-455 uppercase tracking-wider">Assigned Content Types</h4>
+                  {activeNoteContentTypes.length === 0 ? (
+                    <div className="bg-slate-50 rounded-xl p-3 text-center text-xs text-slate-450 border border-slate-200">
+                      No content types linked to this note yet.
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1">
+                      {activeNoteContentTypes.map((act) => (
+                        <div 
+                          key={act.id} 
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-colors"
+                          style={{
+                            backgroundColor: act.content_types?.color_hex ? `${act.content_types.color_hex}15` : '#f1f5f9',
+                            borderColor: act.content_types?.color_hex || '#cbd5e1',
+                            color: act.content_types?.color_hex || '#334155'
+                          }}
+                        >
+                          <span>{act.content_types?.icon_emoji} {act.content_types?.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleUnlinkContentType(act.content_type_id)}
+                            className="text-xs hover:text-rose-600 transition-colors ml-1 font-bold cursor-pointer"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Form to Assign New Tag combo */}
                 <form onSubmit={handleLinkNoteTaxonomy} className="space-y-4 border-t border-slate-150 pt-4">
                   <h4 className="text-[10px] font-extrabold text-slate-455 uppercase tracking-wider">Add Classification Category</h4>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     
                     {/* BOARDS LIST */}
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
@@ -2412,6 +2600,33 @@ export default function AdminConsole() {
                       {linkAllSubjects && (
                         <p className="text-[10px] text-slate-400 italic py-1">All Subjects (wildcard)</p>
                       )}
+                    </div>
+
+                    {/* CONTENT TYPES LIST */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block border-b border-slate-250 pb-1">Content Types</span>
+                      <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                        {contentTypes.map(ct => {
+                          const isLinked = activeNoteContentTypes.some(item => item.content_type_id === ct.id);
+                          return (
+                            <label key={ct.id} className="flex items-center gap-2 text-[11px] font-medium text-slate-655 cursor-pointer hover:text-slate-900 select-none">
+                              <input
+                                type="checkbox"
+                                checked={isLinked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    handleLinkContentType(ct.id);
+                                  } else {
+                                    handleUnlinkContentType(ct.id);
+                                  }
+                                }}
+                                className="w-3 h-3 rounded text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                              />
+                              <span>{ct.icon_emoji} {ct.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
 
                   </div>

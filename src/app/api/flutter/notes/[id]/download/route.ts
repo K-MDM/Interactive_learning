@@ -98,7 +98,10 @@ export async function GET(
     }
 
     if (!isAuthorized) {
-      return new Response(JSON.stringify({ error: 'Subscription required' }), {
+      return new Response(JSON.stringify({
+        error: 'SubscriptionRequired',
+        message: 'This simulation requires a premium subscription. Please upgrade your account to access it.'
+      }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });
