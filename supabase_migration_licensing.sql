@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS licences (
     activated_at TIMESTAMPTZ,
     expires_at TIMESTAMPTZ,
     last_activated_device_id TEXT,
+    last_deactivated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 

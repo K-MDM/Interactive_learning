@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 /**
  * GET /api/flutter/profile
  *
- * Returns profile info for custom Licence JWT or Supabase Auth session.
+ * Returns profile info & licence metadata for custom Licence JWT or Supabase Auth session.
  */
 export async function GET(request: Request) {
   try {
@@ -18,6 +18,22 @@ export async function GET(request: Request) {
     const adminClient = createAdminClient();
     const now = new Date();
 
+    // Fetch deactivation cooldown setting (default 180 days)
+    let cooldownDays = 180;
+    try {
+      const { data: setting } = await adminClient
+        .from('settings')
+        .select('value')
+        .eq('key', 'deactivation_cooldown_days')
+        .single();
+
+      if (setting && setting.value) {
+        cooldownDays = parseInt(String(setting.value), 10) || 180;
+      }
+    } catch (_) {
+      // fallback to 180
+    }
+
     // 1. Try Custom Licence JWT
     const licencePayload = verifyLicenceToken(token);
     if (licencePayload) {
@@ -26,8 +42,11 @@ export async function GET(request: Request) {
         .select(`
           id,
           key,
+          duration_months,
           status,
+          activated_at,
           expires_at,
+          last_deactivated_at,
           organisations (
             name
           )
@@ -42,9 +61,31 @@ export async function GET(request: Request) {
       const isExpired = licence.status === 'expired' || (licence.expires_at && new Date(licence.expires_at) <= now);
       const subscriptionStatus = (!isExpired && licence.status === 'active') ? 'active' : 'expired';
 
+      // Calculate 180-day deactivation rate-limit rule
+      let canDeactivate = true;
+      let daysUntilAllowed = 0;
+
+      if (licence.last_deactivated_at) {
+        const lastDeact = new Date(licence.last_deactivated_at);
+        const diffMs = now.getTime() - lastDeact.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays < cooldownDays) {
+          canDeactivate = false;
+          daysUntilAllowed = cooldownDays - diffDays;
+        }
+      }
+
       return NextResponse.json({
         id: licence.id,
         email: licence.key,
+        licence_key: licence.key,
+        duration_months: licence.duration_months || 12,
+        activated_at: licence.activated_at,
+        expires_at: licence.expires_at,
+        last_deactivated_at: licence.last_deactivated_at,
+        deactivation_cooldown_days: cooldownDays,
+        can_deactivate: canDeactivate,
+        days_until_deactivation_allowed: daysUntilAllowed,
         role: 'student',
         subscription: {
           status: subscriptionStatus,
@@ -94,6 +135,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       id: profile.id,
       email: profile.email,
+      licence_key: null,
       role: profile.role,
       subscription: {
         status: subscriptionStatus,

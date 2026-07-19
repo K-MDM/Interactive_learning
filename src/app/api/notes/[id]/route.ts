@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { verifyOldAppSignature } from '@/lib/crypto';
+import { verifyLicenceToken } from '@/lib/licenceJwt';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -43,7 +44,33 @@ export async function GET(
       );
     }
 
-    // 4. If not authorized by URL, check Supabase auth & web subscription
+    // 4. Check Custom Licence JWT (from Authorization header or query param)
+    if (!isAuthorized) {
+      const authHeader = request.headers.get('Authorization');
+      const tokenFromHeader = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      const tokenFromQuery = searchParams.get('token') || searchParams.get('jwt');
+      const token = tokenFromHeader || tokenFromQuery;
+
+      if (token) {
+        const licencePayload = verifyLicenceToken(token);
+        if (licencePayload) {
+          const { data: licence } = await adminClient
+            .from('licences')
+            .select('status, expires_at')
+            .eq('id', licencePayload.licence_id)
+            .single();
+
+          if (licence && licence.status === 'active') {
+            const exp = licence.expires_at ? new Date(licence.expires_at) : null;
+            if (!exp || exp > new Date()) {
+              isAuthorized = true;
+            }
+          }
+        }
+      }
+    }
+
+    // 5. If not authorized by Licence JWT, check Supabase auth & web subscription
     if (!isAuthorized) {
       const supabase = await createClient();
       const {

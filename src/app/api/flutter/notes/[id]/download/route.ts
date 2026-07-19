@@ -1,4 +1,5 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { verifyLicenceToken } from '@/lib/licenceJwt';
 import { NextResponse } from 'next/server';
 
 /**
@@ -40,7 +41,7 @@ export async function GET(
       isAuthorized = true;
     }
 
-    // 3. For premium notes — check Bearer token (Supabase JWT)
+    // 3. For premium notes — check Bearer token (Custom Licence JWT or Supabase Token)
     if (!isAuthorized) {
       const authHeader = request.headers.get('Authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -51,47 +52,68 @@ export async function GET(
       }
 
       const token = authHeader.substring(7);
-      const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
 
-      if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      // 3a. Custom Licence Key JWT Check
+      const licencePayload = verifyLicenceToken(token);
+      if (licencePayload) {
+        const { data: licence } = await adminClient
+          .from('licences')
+          .select('status, expires_at')
+          .eq('id', licencePayload.licence_id)
+          .single();
+
+        if (licence && licence.status === 'active') {
+          const exp = licence.expires_at ? new Date(licence.expires_at) : null;
+          if (!exp || exp > new Date()) {
+            isAuthorized = true;
+          }
+        }
       }
 
-      // Check profile for subscription or school license
-      const { data: profile } = await adminClient
-        .from('profiles')
-        .select(`
-          role,
-          web_subscription_active,
-          web_subscription_expires_at,
-          school_memberships (
-            school_licenses (
-              is_active,
-              expires_at
-            )
-          )
-        `)
-        .eq('id', user.id)
-        .single();
+      // 3b. Fallback: Supabase User Session
+      if (!isAuthorized) {
+        const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
 
-      if (profile) {
-        // Super/school admins have full access
-        if (profile.role === 'super_admin' || profile.role === 'school_admin') {
-          isAuthorized = true;
+        if (authError || !user) {
+          return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
-        // Active web subscription
-        else if (profile.web_subscription_active) {
-          const exp = new Date(profile.web_subscription_expires_at);
-          if (exp > new Date()) isAuthorized = true;
-        }
-        // Active school license membership
-        if (!isAuthorized && Array.isArray(profile.school_memberships) && profile.school_memberships.length > 0) {
-          const license = (profile.school_memberships[0] as any)?.school_licenses;
-          if (license?.is_active && new Date(license.expires_at) > new Date()) {
+
+        // Check profile for subscription or school license
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select(`
+            role,
+            web_subscription_active,
+            web_subscription_expires_at,
+            school_memberships (
+              school_licenses (
+                is_active,
+                expires_at
+              )
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          // Super/school admins have full access
+          if (profile.role === 'super_admin' || profile.role === 'school_admin') {
             isAuthorized = true;
+          }
+          // Active web subscription
+          else if (profile.web_subscription_active) {
+            const exp = new Date(profile.web_subscription_expires_at);
+            if (exp > new Date()) isAuthorized = true;
+          }
+          // Active school license membership
+          if (!isAuthorized && Array.isArray(profile.school_memberships) && profile.school_memberships.length > 0) {
+            const license = (profile.school_memberships[0] as any)?.school_licenses;
+            if (license?.is_active && new Date(license.expires_at) > new Date()) {
+              isAuthorized = true;
+            }
           }
         }
       }

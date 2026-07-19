@@ -6,6 +6,8 @@ interface PageProps {
     userId?: string;
     expiry?: string;
     signature?: string;
+    token?: string;
+    jwt?: string;
   }>;
 }
 
@@ -22,6 +24,12 @@ export default async function WebviewNotePage({ params, searchParams }: PageProp
   }
   if (resolvedSearchParams.signature) {
     query.set('signature', resolvedSearchParams.signature);
+  }
+  if (resolvedSearchParams.token) {
+    query.set('token', resolvedSearchParams.token);
+  }
+  if (resolvedSearchParams.jwt) {
+    query.set('jwt', resolvedSearchParams.jwt);
   }
 
   // Next.js relative endpoint to load the note securely

@@ -65,11 +65,34 @@ export default function LicenceManager() {
 
   // Action State
   const [transferringId, setTransferringId] = useState<string | null>(null);
+  const [cooldownDays, setCooldownDays] = useState(180);
 
   useEffect(() => {
     fetchLicences();
     fetchOrganisations();
+    fetchSettings();
   }, [search, statusFilter, sourceFilter, typeFilter]);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings');
+      const data = await res.json();
+      if (res.ok && data.deactivation_cooldown_days) {
+        setCooldownDays(data.deactivation_cooldown_days);
+      }
+    } catch (_) {}
+  };
+
+  const handleSaveCooldown = async (val: number) => {
+    setCooldownDays(val);
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'deactivation_cooldown_days', value: val }),
+      });
+    } catch (_) {}
+  };
 
   const fetchLicences = async () => {
     setLoading(true);
@@ -230,7 +253,22 @@ export default function LicenceManager() {
             Manage device-locked licence keys, enterprise organisation distributions, and customer web sales.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Deactivation Cooldown Setting */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
+            <span className="font-bold text-slate-600 whitespace-nowrap">Deactivation Limit:</span>
+            <input
+              type="number"
+              min="0"
+              max="365"
+              value={cooldownDays}
+              onChange={(e) => handleSaveCooldown(parseInt(e.target.value, 10) || 0)}
+              className="w-16 bg-white border border-slate-300 rounded-lg px-2 py-1 text-center font-bold text-slate-800 focus:outline-none focus:border-blue-500"
+              title="Deactivation Cooldown in Days"
+            />
+            <span className="text-slate-400 font-semibold">Days</span>
+          </div>
+
           <button
             onClick={() => setIsOrgModalOpen(true)}
             className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
