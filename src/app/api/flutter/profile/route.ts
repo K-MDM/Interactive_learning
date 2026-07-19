@@ -1,19 +1,14 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
+import { verifyLicenceToken } from '@/lib/licenceJwt';
 import { NextResponse } from 'next/server';
 
 /**
  * GET /api/flutter/profile
  *
- * Returns the authenticated user's profile including:
- * - email
- * - subscription status (active, expired, none)
- * - school membership info (if any)
- *
- * Auth: Required — Bearer token (Supabase JWT)
+ * Returns profile info for custom Licence JWT or Supabase Auth session.
  */
 export async function GET(request: Request) {
   try {
-    // Validate Bearer token
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authorization required' }, { status: 401 });
@@ -21,8 +16,52 @@ export async function GET(request: Request) {
 
     const token = authHeader.substring(7);
     const adminClient = createAdminClient();
-    const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
+    const now = new Date();
 
+    // 1. Try Custom Licence JWT
+    const licencePayload = verifyLicenceToken(token);
+    if (licencePayload) {
+      const { data: licence } = await adminClient
+        .from('licences')
+        .select(`
+          id,
+          key,
+          status,
+          expires_at,
+          organisations (
+            name
+          )
+        `)
+        .eq('id', licencePayload.licence_id)
+        .single();
+
+      if (!licence || licence.status === 'revoked') {
+        return NextResponse.json({ error: 'Licence key is invalid or revoked' }, { status: 401 });
+      }
+
+      const isExpired = licence.status === 'expired' || (licence.expires_at && new Date(licence.expires_at) <= now);
+      const subscriptionStatus = (!isExpired && licence.status === 'active') ? 'active' : 'expired';
+
+      return NextResponse.json({
+        id: licence.id,
+        email: licence.key,
+        role: 'student',
+        subscription: {
+          status: subscriptionStatus,
+          expires_at: licence.expires_at,
+        },
+        school: licence.organisations ? {
+          licenseActive: subscriptionStatus === 'active',
+          schoolName: (licence.organisations as any)?.name || 'Enterprise',
+          expiresAt: licence.expires_at,
+          joinedAt: licence.expires_at,
+        } : null,
+        checkout_url: 'https://keeel.ai/checkout',
+      });
+    }
+
+    // 2. Fallback: Supabase User Token
+    const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
@@ -34,29 +73,15 @@ export async function GET(request: Request) {
         email,
         role,
         web_subscription_active,
-        web_subscription_expires_at,
-        school_memberships (
-          id,
-          joined_at,
-          school_licenses (
-            school_name,
-            is_active,
-            expires_at,
-            total_seats,
-            used_seats
-          )
-        )
+        web_subscription_expires_at
       `)
       .eq('id', user.id)
       .single();
 
     if (profileError || !profile) {
-      console.error('Flutter profile fetch error:', profileError);
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    // Determine subscription state
-    const now = new Date();
     let subscriptionStatus: 'active' | 'expired' | 'none' = 'none';
     let subscriptionExpiresAt: string | null = null;
 
@@ -66,43 +91,15 @@ export async function GET(request: Request) {
       subscriptionExpiresAt = profile.web_subscription_expires_at;
     }
 
-    // School membership info
-    const memberships = (profile as any).school_memberships || [];
-    let schoolInfo: {
-      licenseActive: boolean;
-      schoolName: string;
-      expiresAt: string;
-      joinedAt: string;
-    } | null = null;
-
-    if (memberships.length > 0) {
-      const m = memberships[0];
-      const lic = m.school_licenses;
-      if (lic) {
-        const licenseActive = lic.is_active && new Date(lic.expires_at) > now;
-        // School membership overrides web subscription status
-        if (licenseActive && subscriptionStatus === 'none') {
-          subscriptionStatus = 'active';
-        }
-        schoolInfo = {
-          licenseActive,
-          schoolName: lic.school_name,
-          expiresAt: lic.expires_at,
-          joinedAt: m.joined_at,
-        };
-      }
-    }
-
     return NextResponse.json({
-      id:    profile.id,
+      id: profile.id,
       email: profile.email,
-      role:  profile.role,
+      role: profile.role,
       subscription: {
-        status:     subscriptionStatus,
+        status: subscriptionStatus,
         expires_at: subscriptionExpiresAt,
       },
-      school: schoolInfo,
-      // Checkout URL — Flutter app opens this in browser for upgrades
+      school: null,
       checkout_url: 'https://keeel.ai/checkout',
     });
   } catch (err: any) {

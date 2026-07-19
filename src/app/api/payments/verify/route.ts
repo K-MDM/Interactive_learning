@@ -1,4 +1,5 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { generateLicenceKey } from '@/lib/licenceJwt';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     const razorpayOrder = await getRazorpay().orders.fetch(razorpay_order_id);
     const planId = (razorpayOrder.notes?.planId as string) || '12m';
 
-    // 3. Calculate expiry based on dynamic plan duration from plans table
+    // 3. Calculate plan duration
     const adminSupabase = createAdminClient();
     const { data: planObj } = await adminSupabase
       .from('plans')
@@ -55,35 +56,53 @@ export async function POST(request: Request) {
       .eq('id', planId)
       .single();
 
-    const durationMonths = planObj?.duration_months || 1;
+    const durationMonths = planObj?.duration_months || 12;
 
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
+    // 4. Generate a unique Licence Key
+    const licenceKey = generateLicenceKey();
 
-    // 4. Update user profile subscription via Service Client
-    const { error: dbError } = await adminSupabase
-      .from('profiles')
-      .update({
-        web_subscription_active: true,
-        web_subscription_expires_at: expiresAt.toISOString(),
+    // 5. Insert new Licence into DB
+    const { data: newLicence, error: licenceError } = await adminSupabase
+      .from('licences')
+      .insert({
+        key: licenceKey,
+        duration_months: durationMonths,
+        purchaser_profile_id: user.id,
+        source: 'web',
+        type: 'paid',
+        status: 'pending',
       })
-      .eq('id', user.id);
+      .select()
+      .single();
 
-    if (dbError) {
-      console.error('Database Update Error:', dbError);
+    if (licenceError || !newLicence) {
+      console.error('Failed to create licence key:', licenceError);
       return NextResponse.json(
-        { error: 'Payment verified, but database update failed' },
+        { error: 'Payment verified, but licence generation failed' },
         { status: 500 }
       );
     }
 
-    // 5. Log transaction details for tracking and KPIs
+    // Log creation activity
+    await adminSupabase.from('licence_activity_log').insert({
+      licence_id: newLicence.id,
+      action: 'created',
+      performed_by: user.id,
+      metadata: {
+        payment_id: razorpay_payment_id,
+        order_id: razorpay_order_id,
+        plan_id: planId,
+        duration_months: durationMonths,
+      },
+    });
+
+    // 6. Log transaction details
     try {
       const amountPaid = (Number(razorpayOrder.amount) || 0) / 100;
       const currencyPaid = razorpayOrder.currency || 'USD';
       const couponCodeApplied = razorpayOrder.notes?.couponCode || null;
 
-      const { error: txError } = await adminSupabase
+      await adminSupabase
         .from('transactions')
         .upsert({
           user_id: user.id,
@@ -96,15 +115,16 @@ export async function POST(request: Request) {
           razorpay_order_id: razorpay_order_id,
           status: 'completed'
         }, { onConflict: 'razorpay_payment_id' });
-
-      if (txError) {
-        console.error('Failed to log payment transaction:', txError);
-      }
     } catch (txErr) {
-      console.error('Transaction logging block threw exception:', txErr);
+      console.error('Transaction logging failed:', txErr);
     }
 
-    return NextResponse.json({ success: true, message: 'Subscription activated' });
+    return NextResponse.json({
+      success: true,
+      message: 'Licence key generated successfully',
+      licence_key: licenceKey,
+      duration_months: durationMonths,
+    });
   } catch (error: any) {
     console.error('Razorpay Verification Error:', error);
     return NextResponse.json(

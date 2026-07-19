@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
-import { Menu, X, LogOut, User, ChevronDown } from 'lucide-react';
+import { Menu, X, LogOut, User, ChevronDown, Key } from 'lucide-react';
 import { useScroll } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -205,6 +205,15 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                     <p className="text-[11px] text-slate-400 font-medium truncate">{authUser.email}</p>
                   </div>
                   <Link
+                    href="/dashboard"
+                    role="menuitem"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-[#0F172A] cursor-pointer transition-colors duration-100"
+                  >
+                    <Key className="w-3.5 h-3.5 text-blue-600" />
+                    My Licences
+                  </Link>
+                  <Link
                     href="/checkout"
                     role="menuitem"
                     onClick={() => setIsDropdownOpen(false)}
@@ -290,8 +299,15 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                   </div>
                 </div>
                 <Link
+                  href="/dashboard"
+                  className="w-full py-3.5 rounded-xl font-bold text-center bg-blue-600 text-white text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Key className="w-4 h-4" />
+                  My Licences
+                </Link>
+                <Link
                   href="/checkout"
-                  className="w-full py-3.5 rounded-xl font-bold text-center border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl font-bold text-center border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2"
                 >
                   <User className="w-4 h-4" />
                   View Profile

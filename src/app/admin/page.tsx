@@ -9,6 +9,7 @@ import {
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
   Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers
 } from 'lucide-react';
+import LicenceManager from './LicenceManager';
 
 export default function AdminConsole() {
   const supabase = createClient();
@@ -1706,148 +1707,9 @@ export default function AdminConsole() {
             </div>
           )}
 
-          {/* TAB: SCHOOL LICENSES (Super Admin Only) */}
+          {/* TAB: LICENCE MANAGEMENT (Super Admin Only) */}
           {role === 'super_admin' && activeTab === 'licenses' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-display">Manage Institutional Access</h3>
-                  <p className="text-slate-500 text-xs mt-0.5">Register school administrators, edit seat quotas, and verify subscription expirations.</p>
-                </div>
-                <button
-                  onClick={() => setIsSchoolModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Register School License</span>
-                </button>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
-                        <th className="pb-3">School Name</th>
-                        <th className="pb-3">Admin Email</th>
-                        <th className="pb-3">Seat Allocations</th>
-                        <th className="pb-3">Expiration Date</th>
-                        <th className="pb-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {globalLicenses.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-6 text-center text-slate-400">No school licenses currently registered.</td>
-                        </tr>
-                      ) : (
-                        globalLicenses.map((lic: any) => (
-                          <tr key={lic.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3.5 font-bold text-slate-900">{lic.school_name}</td>
-                            <td className="py-3.5 text-slate-600 font-semibold">{lic.adminEmail}</td>
-                            <td className="py-3.5 font-bold text-slate-700">
-                              <span className="text-blue-600">{lic.used_seats}</span> / {lic.total_seats} Seats Used
-                            </td>
-                            <td className="py-3.5 text-slate-500">
-                              {new Date(lic.expires_at).toLocaleDateString()}
-                            </td>
-                            <td className="py-3.5">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                lic.is_active && new Date(lic.expires_at) > new Date()
-                                  ? 'bg-emerald-50 text-emerald-700' 
-                                  : 'bg-rose-50 text-rose-700'
-                              }`}>
-                                {lic.is_active && new Date(lic.expires_at) > new Date() ? 'Active' : 'Expired/Inactive'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* MODAL: Register School Admin & License */}
-              {isSchoolModalOpen && (
-                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                  <div className="bg-white border border-slate-200 rounded-3xl p-7 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2 font-display">Register School Admin</h3>
-                    <p className="text-slate-500 text-xs mb-6">Create a school admin account. The credentials can be shared with the school coordinator.</p>
-                    
-                    <form onSubmit={handleAddSchoolAdmin} className="space-y-4">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">School Name</label>
-                        <input
-                          type="text" required
-                          value={newSchoolName}
-                          onChange={(e) => setNewSchoolName(e.target.value)}
-                          placeholder="e.g. Oakridge K-12 Academy"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Admin Email Address</label>
-                        <input
-                          type="email" required
-                          value={newAdminEmail}
-                          onChange={(e) => setNewAdminEmail(e.target.value)}
-                          placeholder="admin@oakridge.edu"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Admin Password</label>
-                        <input
-                          type="password" required minLength={6}
-                          value={newAdminPassword}
-                          onChange={(e) => setNewAdminPassword(e.target.value)}
-                          placeholder="Password (min 6 chars)"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Seat Quota</label>
-                          <input
-                            type="number" required min={1}
-                            value={newSchoolSeats}
-                            onChange={(e) => setNewSchoolSeats(parseInt(e.target.value, 10) || 0)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Duration (Months)</label>
-                          <input
-                            type="number" required min={1}
-                            value={newSchoolDurationMonths}
-                            onChange={(e) => setNewSchoolDurationMonths(parseInt(e.target.value, 10) || 0)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 pt-4">
-                        <button
-                          type="button"
-                          onClick={() => setIsSchoolModalOpen(false)}
-                          className="w-1/2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-lg text-xs transition-colors cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={saving}
-                          className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs transition-all flex items-center justify-center cursor-pointer"
-                        >
-                          {saving ? <Loader className="w-4 h-4 animate-spin" /> : 'Register School'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </div>
+            <LicenceManager />
           )}
 
           {/* TAB: ACCESS CODES (School Admin Only) */}
