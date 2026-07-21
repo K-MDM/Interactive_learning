@@ -80,7 +80,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Us</h3>
-                <p className="text-sm font-bold text-slate-900 mt-1">support@keeel.ai</p>
+                <p className="text-sm font-bold text-slate-900 mt-1">support@keeelai.com</p>
                 <p className="text-xs text-slate-500 mt-0.5 font-semibold">Average response time: &lt; 2 hours</p>
               </div>
             </div>

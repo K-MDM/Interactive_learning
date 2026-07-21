@@ -4,8 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader, 
+import {
+  ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader,
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
   Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers
 } from 'lucide-react';
@@ -55,7 +55,7 @@ export default function AdminConsole() {
   const [activeNote, setActiveNote] = useState<any>(null);
   const [activeNoteTaxonomy, setActiveNoteTaxonomy] = useState<any[]>([]);
   const [activeNoteContentTypes, setActiveNoteContentTypes] = useState<any[]>([]);
-  
+
   const [linkBoardIds, setLinkBoardIds] = useState<string[]>([]);
   const [linkClassIds, setLinkClassIds] = useState<string[]>([]);
   const [linkSubjectIds, setLinkSubjectIds] = useState<string[]>([]);
@@ -67,7 +67,7 @@ export default function AdminConsole() {
   // Data States
   const [notes, setNotes] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
-  
+
   // Settings States
   const [pricing, setPricing] = useState<any>({
     plans: [],
@@ -153,7 +153,7 @@ export default function AdminConsole() {
         const { data: dbSettings } = await supabase
           .from('settings')
           .select('*');
-        
+
         let taxPercent = 18;
         if (dbSettings) {
           const pricingRow = dbSettings.find(s => s.key === 'pricing');
@@ -189,7 +189,7 @@ export default function AdminConsole() {
         setClasses(dataTax.classes || []);
         setSubjects(dataTax.subjects || []);
         setContentTypes(dataTax.content_types || []);
-      } 
+      }
       else if (userRole === 'school_admin') {
         // Load School Admin local data
         // 1. Fetch school license details
@@ -285,7 +285,7 @@ export default function AdminConsole() {
       setIsPlanModalOpen(false);
       setEditingPlan(null);
       setMessage({ type: 'success', text: `Plan '${editingPlan.name}' saved successfully.` });
-      
+
       // Reload administrative console stats/metrics
       loadAdminData();
     } catch (err: any) {
@@ -314,7 +314,7 @@ export default function AdminConsole() {
 
       setPricing({ ...pricing, plans: updatedPlans });
       setMessage({ type: 'success', text: `Plan '${planName}' deleted.` });
-      
+
       // Reload administrative console stats/metrics
       loadAdminData();
     } catch (err: any) {
@@ -522,7 +522,7 @@ export default function AdminConsole() {
       const resTax = await fetch(`/api/super/notes/${activeNote.id}/taxonomy`);
       const dataTax = await resTax.json();
       setActiveNoteTaxonomy(dataTax.taxonomy || []);
-      
+
       setLinkBoardIds([]);
       setLinkClassIds([]);
       setLinkSubjectIds([]);
@@ -778,13 +778,13 @@ export default function AdminConsole() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans">
-      
+
       {/* LEFT SIDE DRAWER / SIDEBAR PANEL */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between sticky top-0 h-screen z-20 shrink-0">
-        
+
         {/* Upper Menu block */}
         <div className="p-6 space-y-8">
-          
+
           {/* Dashboard Logo Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
             <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
@@ -816,11 +816,10 @@ export default function AdminConsole() {
                     setActiveTab(menuItem.id as any);
                     setMessage(null);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === menuItem.id 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === menuItem.id
+                      ? 'bg-blue-50 text-blue-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {menuItem.icon}
                   <span>{menuItem.label}</span>
@@ -840,11 +839,10 @@ export default function AdminConsole() {
                     setActiveTab(menuItem.id as any);
                     setMessage(null);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === menuItem.id 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === menuItem.id
+                      ? 'bg-blue-50 text-blue-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {menuItem.icon}
                   <span>{menuItem.label}</span>
@@ -860,7 +858,7 @@ export default function AdminConsole() {
           <div className="px-2">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Logged in as</span>
             <span className="text-xs font-semibold text-slate-700 truncate block mt-0.5" title={adminEmail || ''}>
-              {adminEmail || 'admin@keeel.ai'}
+              {adminEmail || 'admin@keeelai.com'}
             </span>
             <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-1 block">
               {role === 'super_admin' ? 'Super Admin' : 'School Admin'}
@@ -880,37 +878,37 @@ export default function AdminConsole() {
 
       {/* RIGHT SIDE MAIN CONTENT PANEL */}
       <main className="flex-1 overflow-y-auto p-8 relative flex flex-col justify-between">
-        
+
         <div className="space-y-8">
-          
+
           {/* Header */}
           <div className="flex justify-between items-center pb-4 border-b border-slate-200/60">
             <div>
               <span className="text-xs text-slate-455 font-semibold uppercase tracking-wider">Console / {activeTab}</span>
               <h1 className="text-2xl font-extrabold text-slate-900 mt-1 capitalize font-display">
                 {role === 'super_admin' ? (
-                  activeTab === 'notes' 
-                    ? 'Interactive Lectures' 
-                    : activeTab === 'plans' 
-                    ? 'Subscription Plans' 
-                    : activeTab === 'settings' 
-                    ? 'System Configurations' 
-                    : activeTab === 'coupons' 
-                    ? 'Coupon Manager' 
-                    : activeTab === 'licenses'
-                    ? 'School Licenses Control'
-                    : 'Global Dashboard Metrics'
+                  activeTab === 'notes'
+                    ? 'Interactive Lectures'
+                    : activeTab === 'plans'
+                      ? 'Subscription Plans'
+                      : activeTab === 'settings'
+                        ? 'System Configurations'
+                        : activeTab === 'coupons'
+                          ? 'Coupon Manager'
+                          : activeTab === 'licenses'
+                            ? 'School Licenses Control'
+                            : 'Global Dashboard Metrics'
                 ) : (
-                  activeTab === 'codes' 
-                    ? 'School Access Codes' 
-                    : activeTab === 'students' 
-                    ? 'Enrolled Students' 
-                    : 'School License Summary'
+                  activeTab === 'codes'
+                    ? 'School Access Codes'
+                    : activeTab === 'students'
+                      ? 'Enrolled Students'
+                      : 'School License Summary'
                 )}
               </h1>
             </div>
             {role === 'super_admin' && activeTab === 'notes' && (
-              <Link 
+              <Link
                 href="/admin/upload"
                 className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
               >
@@ -922,11 +920,10 @@ export default function AdminConsole() {
 
           {/* Feedback alerts */}
           {message && (
-            <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${
-              message.type === 'success' 
-                ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
+            <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${message.type === 'success'
+                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                 : 'bg-rose-50 border-rose-100 text-rose-700'
-            }`}>
+              }`}>
               {message.type === 'success' ? (
                 <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500" />
               ) : (
@@ -941,7 +938,7 @@ export default function AdminConsole() {
           {/* TAB: DASHBOARD METRICS */}
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
-              
+
               {/* KPI Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
@@ -1003,7 +1000,7 @@ export default function AdminConsole() {
 
               {/* Sub-grid section */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 {/* Recent Registrations Table (Operational View) */}
                 <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                   <h3 className="text-base font-bold text-slate-900 font-display">Recent Registrations</h3>
@@ -1029,11 +1026,10 @@ export default function AdminConsole() {
                                 {new Date(signup.created_at).toLocaleDateString()}
                               </td>
                               <td className="py-3.5 text-right">
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                  signup.web_subscription_active 
-                                    ? 'bg-emerald-50 text-emerald-700' 
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${signup.web_subscription_active
+                                    ? 'bg-emerald-50 text-emerald-700'
                                     : 'bg-slate-100 text-slate-500'
-                                }`}>
+                                  }`}>
                                   {signup.web_subscription_active ? 'Premium' : 'Free Account'}
                                 </span>
                               </td>
@@ -1157,7 +1153,7 @@ export default function AdminConsole() {
 
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
-                          <a 
+                          <a
                             href={getTestLink(note.id)}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -1166,14 +1162,13 @@ export default function AdminConsole() {
                             <Link2 className="w-3.5 h-3.5" />
                             <span>Test Link</span>
                           </a>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => toggleNoteDemo(note.id, note.is_demo)}
-                            className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${
-                              note.is_demo 
-                                ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
+                            className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${note.is_demo
+                                ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                                 : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                            }`}
+                              }`}
                           >
                             {note.is_demo ? 'Disable Demo' : 'Make Demo'}
                           </button>
@@ -1202,7 +1197,7 @@ export default function AdminConsole() {
                   <h3 className="text-base font-bold text-slate-900 font-display">Manage Subscription Plans</h3>
                   <p className="text-slate-500 text-xs mt-0.5">Configure available purchase options displayed to students during checkout.</p>
                 </div>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     setEditingPlan({
@@ -1232,8 +1227,8 @@ export default function AdminConsole() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pricing.plans.map((plan: any) => (
-                    <div 
-                      key={plan.id} 
+                    <div
+                      key={plan.id}
                       className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-200 shadow-sm relative overflow-hidden"
                     >
                       {/* Top Bar with Plan Identifier and Edit/Delete controls */}
@@ -1297,7 +1292,7 @@ export default function AdminConsole() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Dashed Add New Plan Card Placeholder */}
                   <button
                     type="button"
@@ -1329,7 +1324,7 @@ export default function AdminConsole() {
               {/* Plans Editing overlay Modal */}
               {isPlanModalOpen && (
                 <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                  <div 
+                  <div
                     className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 animate-in slide-in-from-bottom-6 zoom-in-95 duration-200"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -1367,11 +1362,10 @@ export default function AdminConsole() {
                           }}
                           required
                           disabled={!isNewPlan}
-                          className={`w-full border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-colors ${
-                            isNewPlan 
-                              ? 'bg-white border-slate-200 text-slate-800' 
+                          className={`w-full border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-colors ${isNewPlan
+                              ? 'bg-white border-slate-200 text-slate-800'
                               : 'bg-slate-100 border-slate-200 text-slate-450 cursor-not-allowed font-mono'
-                          }`}
+                            }`}
                         />
                         {isNewPlan && (
                           <span className="text-[10px] text-slate-400 block mt-1 leading-normal">
@@ -1478,14 +1472,14 @@ export default function AdminConsole() {
           {/* TAB: SYSTEM SETTINGS */}
           {activeTab === 'settings' && (
             <form onSubmit={handleSaveSettings} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
-              
+
               {/* Global Config Section */}
               <div className="space-y-4">
                 <h3 className="text-base font-bold text-slate-900 font-display border-b border-slate-100 pb-2">Global Settings</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Global Tax Rate (%)</label>
-                    <input 
+                    <input
                       type="number" min="0" max="100"
                       value={pricing.tax_percent}
                       onChange={(e) => setPricing({ ...pricing, tax_percent: parseInt(e.target.value, 10) || 0 })}
@@ -1501,7 +1495,7 @@ export default function AdminConsole() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Android (Play Store URL)</label>
-                    <input 
+                    <input
                       type="url"
                       value={downloads.android}
                       onChange={(e) => setDownloads({ ...downloads, android: e.target.value })}
@@ -1510,7 +1504,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">macOS (.dmg URL)</label>
-                    <input 
+                    <input
                       type="url"
                       value={downloads.macos}
                       onChange={(e) => setDownloads({ ...downloads, macos: e.target.value })}
@@ -1519,7 +1513,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Windows Installer (.exe URL)</label>
-                    <input 
+                    <input
                       type="url"
                       value={downloads.windows}
                       onChange={(e) => setDownloads({ ...downloads, windows: e.target.value })}
@@ -1529,7 +1523,7 @@ export default function AdminConsole() {
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={saving}
                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs"
@@ -1542,7 +1536,7 @@ export default function AdminConsole() {
           {/* TAB: COUPON MANAGEMENT */}
           {activeTab === 'coupons' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
+
               {/* Create Coupon Box */}
               <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
@@ -1552,7 +1546,7 @@ export default function AdminConsole() {
                 <form onSubmit={handleAddCoupon} className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Coupon Code</label>
-                    <input 
+                    <input
                       type="text"
                       value={newCouponCode}
                       onChange={(e) => setNewCouponCode(e.target.value)}
@@ -1563,7 +1557,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Discount (%)</label>
-                    <input 
+                    <input
                       type="number" min="1" max="100"
                       value={newCouponPercent}
                       onChange={(e) => setNewCouponPercent(parseInt(e.target.value, 10) || 0)}
@@ -1573,7 +1567,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Minimum Order Amount (USD, Optional)</label>
-                    <input 
+                    <input
                       type="number" step="0.01" min="0"
                       value={newCouponMinAmount}
                       onChange={(e) => setNewCouponMinAmount(e.target.value)}
@@ -1605,7 +1599,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Expiry Date (Optional)</label>
-                    <input 
+                    <input
                       type="date"
                       value={newCouponExpiry}
                       onChange={(e) => setNewCouponExpiry(e.target.value)}
@@ -1613,7 +1607,7 @@ export default function AdminConsole() {
                     />
                   </div>
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={saving}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center transition-all cursor-pointer text-sm"
@@ -1661,36 +1655,35 @@ export default function AdminConsole() {
                             <td className="py-3.5 text-slate-650 max-w-[150px] truncate" title={
                               coupon.eligible_plan_ids && coupon.eligible_plan_ids.length > 0
                                 ? coupon.eligible_plan_ids.map((id: string) => {
-                                    const pl = pricing.plans.find((p: any) => p.id === id);
-                                    return pl ? pl.name : id;
-                                  }).join(', ')
+                                  const pl = pricing.plans.find((p: any) => p.id === id);
+                                  return pl ? pl.name : id;
+                                }).join(', ')
                                 : 'All Plans'
                             }>
                               {coupon.eligible_plan_ids && coupon.eligible_plan_ids.length > 0
                                 ? coupon.eligible_plan_ids.map((id: string) => {
-                                    const pl = pricing.plans.find((p: any) => p.id === id);
-                                    return pl ? pl.name : id;
-                                  }).join(', ')
+                                  const pl = pricing.plans.find((p: any) => p.id === id);
+                                  return pl ? pl.name : id;
+                                }).join(', ')
                                 : 'All Plans'}
                             </td>
                             <td className="py-3.5 text-slate-500">
                               {coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString() : 'Never'}
                             </td>
                             <td className="py-3.5">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                }`}>
                                 {coupon.active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
                             <td className="py-3.5 text-right space-x-2 whitespace-nowrap">
-                              <button 
+                              <button
                                 onClick={() => toggleCoupon(coupon.code, coupon.active)}
                                 className="text-xs font-semibold text-slate-500 hover:text-slate-800 border border-slate-200 px-2 py-1 rounded hover:bg-slate-50"
                               >
                                 Toggle
                               </button>
-                              <button 
+                              <button
                                 onClick={() => deleteCoupon(coupon.code)}
                                 className="text-xs font-semibold text-rose-600 hover:text-rose-500 border border-rose-100 px-2 py-1 rounded hover:bg-rose-50"
                               >
@@ -1793,7 +1786,7 @@ export default function AdminConsole() {
                   <div className="bg-white border border-slate-200 rounded-3xl p-7 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
                     <h3 className="text-lg font-bold text-slate-900 mb-2 font-display">Generate School Access Code</h3>
                     <p className="text-slate-500 text-xs mb-6">Create a code students can redeem to claim a seat on your license.</p>
-                    
+
                     <form onSubmit={handleCreateAccessCode} className="space-y-4">
                       <div>
                         <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Access Code text</label>
@@ -1899,7 +1892,7 @@ export default function AdminConsole() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                
+
                 {/* BOARDS PANEL */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
                   <div className="space-y-4">
@@ -2097,8 +2090,8 @@ export default function AdminConsole() {
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="text-[10px] text-slate-400 font-mono">slug: {ct.slug}</span>
                                   {ct.color_hex && (
-                                    <span 
-                                      className="w-2 h-2 rounded-full inline-block" 
+                                    <span
+                                      className="w-2 h-2 rounded-full inline-block"
                                       style={{ backgroundColor: ct.color_hex }}
                                       title={ct.color_hex}
                                     />
@@ -2306,8 +2299,8 @@ export default function AdminConsole() {
                   ) : (
                     <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1">
                       {activeNoteContentTypes.map((act) => (
-                        <div 
-                          key={act.id} 
+                        <div
+                          key={act.id}
                           className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-colors"
                           style={{
                             backgroundColor: act.content_types?.color_hex ? `${act.content_types.color_hex}15` : '#f1f5f9',
@@ -2332,9 +2325,9 @@ export default function AdminConsole() {
                 {/* Form to Assign New Tag combo */}
                 <form onSubmit={handleLinkNoteTaxonomy} className="space-y-4 border-t border-slate-150 pt-4">
                   <h4 className="text-[10px] font-extrabold text-slate-455 uppercase tracking-wider">Add Classification Category</h4>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    
+
                     {/* BOARDS LIST */}
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
                       <div className="flex justify-between items-center border-b border-slate-250 pb-1">

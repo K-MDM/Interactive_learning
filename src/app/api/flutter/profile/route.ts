@@ -97,7 +97,7 @@ export async function GET(request: Request) {
           expiresAt: licence.expires_at,
           joinedAt: licence.expires_at,
         } : null,
-        checkout_url: 'https://keeel.ai/checkout',
+        checkout_url: 'https://keeelai.com/checkout',
       });
     }
 
@@ -142,7 +142,7 @@ export async function GET(request: Request) {
         expires_at: subscriptionExpiresAt,
       },
       school: null,
-      checkout_url: 'https://keeel.ai/checkout',
+      checkout_url: 'https://keeelai.com/checkout',
     });
   } catch (err: any) {
     console.error('Flutter profile GET error:', err);

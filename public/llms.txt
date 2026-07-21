@@ -12,7 +12,7 @@ Our browser-based interactive simulation player brings abstract math and science
 - **K-12 Alignment**: Structured around science and math school curriculums.
 
 ## Key Links
-- Homepage: https://keeel.ai/
-- Demos: https://keeel.ai/demo
-- Pricing & Membership: https://keeel.ai/checkout
-- Support / Contact: https://keeel.ai/contact
+- Homepage: https://keeelai.com/
+- Demos: https://keeelai.com/demo
+- Pricing & Membership: https://keeelai.com/checkout
+- Support / Contact: https://keeelai.com/contact
