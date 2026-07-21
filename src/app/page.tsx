@@ -42,7 +42,7 @@ export default function LandingPage() {
               href="/demo"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm transition-all active:scale-[0.98] shadow-md hover:shadow-lg shadow-blue-500/20 inline-flex items-center gap-2 group cursor-pointer"
             >
-              <span>Explore Simulation Player</span>
+              <span>Explore Experience Zone</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>

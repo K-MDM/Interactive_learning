@@ -40,7 +40,7 @@ export function HeroSection() {
                 size="lg"
                 className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full pl-6 pr-4 text-sm transition-all active:scale-[0.98] shadow-md shadow-blue-500/25 cursor-pointer">
                 <Link href="/demo">
-                  <span className="text-nowrap">Explore Simulation Demos</span>
+                  <span className="text-nowrap">Explore Experience Zone</span>
                   <ChevronRight className="ml-1 w-4 h-4" />
                 </Link>
               </Button>

@@ -92,7 +92,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
 
   const links = [
     { href: '/', label: 'Home' },
-    { href: '/demo', label: 'Demos' },
+    { href: '/demo', label: 'Experience Zone' },
     { href: '/checkout', label: 'Pricing' },
     { href: '/contact', label: 'Support' },
   ];
