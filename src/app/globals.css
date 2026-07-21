@@ -3,11 +3,64 @@
 :root {
   --background: #FAF9F6;
   --foreground: #0F172A;
+
+  /* Brand: indigo -> teal, matching the KEEEL AI logo gradient */
+  --primary: #4F46E5;
+  --primary-foreground: #FFFFFF;
+  --primary-bright: #8B85F8;
+
+  --secondary: #0F766E;
+  --secondary-foreground: #FFFFFF;
+  --secondary-bright: #2DD4BF;
+
+  /* Warm complementary accent, used as a subtle hover/highlight surface */
+  --accent: #FCF1E3;
+  --accent-foreground: #9A5B12;
+  --accent-bright: #F2B65A;
+
+  --muted: #F2F1FA;
+  --muted-foreground: #64748B;
+
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+
+  --border: #E4E2F1;
+  --input: #E4E2F1;
+  --ring: #4F46E5;
+
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-bright: var(--primary-bright);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-bright: var(--secondary-bright);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-bright: var(--accent-bright);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
   --font-sans: var(--font-body), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-display), "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }

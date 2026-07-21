@@ -62,19 +62,19 @@ const MediaContentSection = ({ mediaType }: { mediaType: 'video' | 'image' }) =>
 
   return (
     <div className='max-w-4xl mx-auto py-12 px-6 bg-[#05090D] border border-slate-900 rounded-3xl text-white shadow-xl relative overflow-hidden'>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(59,130,246,0.1),transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(79,70,229,0.1),transparent_50%)] pointer-events-none" />
       <h2 className='text-3xl font-black mb-6 font-display tracking-tight text-white'>
         About This Interactive Block
       </h2>
-      <p className='text-lg leading-relaxed mb-6 text-slate-350'>
+      <p className='text-lg leading-relaxed mb-6 text-slate-400'>
         {currentMedia.about.overview}
       </p>
-      <p className='text-lg leading-relaxed text-slate-350'>
+      <p className='text-lg leading-relaxed text-slate-400'>
         {currentMedia.about.conclusion}
       </p>
       <div className="mt-8 pt-8 border-t border-slate-900 flex justify-between items-center text-xs text-slate-500 font-bold uppercase tracking-widest">
         <span>Interactive Sandbox</span>
-        <Link href="/" className="text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1">
+        <Link href="/" className="text-primary-bright hover:text-primary transition-colors flex items-center gap-1">
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
       </div>
@@ -99,7 +99,7 @@ export default function DemoPlayground() {
       <div className='fixed top-4 left-4 z-50 flex items-center gap-4 bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-2xl'>
         <Link
           href="/demo"
-          className="p-2 text-white hover:text-blue-400 transition-colors"
+          className="p-2 text-white hover:text-primary-bright transition-colors"
           title="Back to Demos"
         >
           <ArrowLeft className="w-5 h-5" />

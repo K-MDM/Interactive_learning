@@ -355,7 +355,7 @@ export default function CheckoutPage() {
           }
         },
         prefill: { email: orderData.user.email },
-        theme: { color: '#3B82F6' },
+        theme: { color: '#4F46E5' },
       };
 
       const rzp = new (window as any).Razorpay(options);
@@ -389,7 +389,7 @@ export default function CheckoutPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -408,8 +408,8 @@ export default function CheckoutPage() {
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
         {/* Diagonal glowing decorations */}
-        <div className="absolute top-[-25%] left-[-25%] w-[75%] h-[75%] rounded-full bg-blue-500/5 blur-[130px] pointer-events-none" />
-        <div className="absolute bottom-[-25%] right-[-25%] w-[75%] h-[75%] rounded-full bg-emerald-500/5 blur-[130px] pointer-events-none" />
+        <div className="absolute top-[-25%] left-[-25%] w-[75%] h-[75%] rounded-full bg-primary/5 blur-[130px] pointer-events-none" />
+        <div className="absolute bottom-[-25%] right-[-25%] w-[75%] h-[75%] rounded-full bg-secondary/5 blur-[130px] pointer-events-none" />
 
         {/* Global Navbar */}
         <Navbar
@@ -434,7 +434,7 @@ export default function CheckoutPage() {
         <main className="pt-32 pb-20 relative z-10">
           {/* Hero */}
           <section className="max-w-6xl mx-auto px-6 mb-12 text-center space-y-4">
-            <span className="inline-block bg-blue-50 border border-blue-200 text-blue-750 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+            <span className="inline-block bg-primary/10 border border-primary/20 text-primary text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
               Premium Learning Access
             </span>
             <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4 font-display">
@@ -467,10 +467,10 @@ export default function CheckoutPage() {
                       key={plan.id}
                       className={`relative flex flex-col rounded-3xl border transition-all duration-300 cursor-pointer p-7 bg-white shadow-sm
                         ${isPopular
-                          ? 'border-2 border-emerald-500 shadow-lg shadow-emerald-500/[0.02] md:scale-[1.02]'
+                          ? 'border-2 border-secondary shadow-lg shadow-secondary/[0.02] md:scale-[1.02]'
                           : isSelected
-                            ? 'border-2 border-blue-500 bg-blue-50/[0.08] shadow-sm'
-                            : 'border-slate-200 hover:border-slate-350 hover:-translate-y-1'
+                            ? 'border-2 border-primary bg-primary/[0.08] shadow-sm'
+                            : 'border-slate-200 hover:border-slate-300 hover:-translate-y-1'
                         }`}
                       onClick={() => {
                         setSelectedPlan(plan.id);
@@ -478,14 +478,14 @@ export default function CheckoutPage() {
                     >
                       {/* Most Popular Badge */}
                       {isPopular && (
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-secondary to-secondary-bright text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
                           Most Popular
                         </div>
                       )}
 
                       {/* Discount ribbon */}
                       {hasDiscount && (
-                        <div className="absolute top-4 right-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                        <div className="absolute top-4 right-4 bg-secondary/10 border border-secondary/20 text-secondary text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
                           Save {plan.discount_percent}%
                         </div>
                       )}
@@ -493,10 +493,10 @@ export default function CheckoutPage() {
                       <div className="flex flex-col flex-1 h-full justify-between">
                         {/* Header */}
                         <div>
-                          <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-4 ${isPopular ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}>
+                          <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-4 ${isPopular ? 'bg-secondary text-secondary-foreground' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}>
                             {getPlanIcon(idx)}
                           </div>
-                          <p className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${isPopular ? 'text-emerald-700' : 'text-slate-500'}`}>
+                          <p className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${isPopular ? 'text-secondary' : 'text-slate-500'}`}>
                             {plan.duration_months === 1 ? 'Basic' : plan.duration_months <= 6 ? 'Advanced' : 'Premium'}
                           </p>
                           <h2 className="text-xl font-bold text-slate-900 font-display">{plan.name}</h2>
@@ -508,7 +508,7 @@ export default function CheckoutPage() {
                         {/* Price */}
                         <div className="my-6">
                           <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className={`text-4xl font-extrabold tracking-tight font-display ${isPopular ? 'bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent' : 'text-slate-900'}`}>
+                            <span className={`text-4xl font-extrabold tracking-tight font-display ${isPopular ? 'bg-gradient-to-r from-secondary to-secondary-bright bg-clip-text text-transparent' : 'text-slate-900'}`}>
                               {cardSymbol}{planResolved.priceAfterPlanDiscount.toFixed(planResolved.currency === 'INR' ? 0 : 2)}
                             </span>
                             {hasDiscount && (
@@ -526,7 +526,7 @@ export default function CheckoutPage() {
                         <ul className="space-y-3 mb-8 flex-1 border-t border-slate-100 pt-4">
                           {features.map((feat, fIdx) => (
                             <li key={fIdx} className="flex items-start gap-2.5">
-                              <Check className={`w-4 h-4 mt-0.5 shrink-0 ${isPopular ? 'text-emerald-500' : 'text-blue-500'}`} />
+                              <Check className={`w-4 h-4 mt-0.5 shrink-0 ${isPopular ? 'text-secondary' : 'text-primary'}`} />
                               <span className="text-sm text-slate-600 font-semibold">{feat}</span>
                             </li>
                           ))}
@@ -542,7 +542,7 @@ export default function CheckoutPage() {
                           }}
                           className={`w-full py-3.5 rounded-xl font-bold text-xs transition-all active:scale-[0.98] cursor-pointer
                             ${isPopular
-                              ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md'
+                              ? 'bg-gradient-to-r from-secondary to-secondary-bright text-white shadow-md'
                               : 'bg-transparent hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900'
                             }`}
                         >
@@ -559,10 +559,10 @@ export default function CheckoutPage() {
           {/* School Access Code Redemption Card */}
           <section className="max-w-2xl mx-auto px-6 mt-16">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-teal-400" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary" />
 
               <div className="text-center space-y-2">
-                <span className="inline-block bg-blue-50 border border-blue-200 text-blue-750 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                <span className="inline-block bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                   School License Redemption
                 </span>
                 <h3 className="text-xl font-extrabold text-slate-900 font-display">Redeem Access Code</h3>
@@ -573,8 +573,8 @@ export default function CheckoutPage() {
 
               {message && (message.text.includes('School access code') || message.text.includes('license code')) && (
                 <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${message.type === 'success'
-                  ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                  : 'bg-rose-50 border-rose-100 text-rose-700'
+                  ? 'bg-secondary/10 border-secondary/20 text-secondary'
+                  : 'bg-destructive/10 border-destructive/20 text-destructive'
                   }`}>
                   {message.text}
                 </div>
@@ -588,12 +588,12 @@ export default function CheckoutPage() {
                     value={schoolCode}
                     onChange={(e) => setSchoolCode(e.target.value)}
                     placeholder="e.g. OAKRIDGE-STEM-2026"
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
                   />
                   <button
                     type="submit"
                     disabled={redeemLoading}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer shrink-0"
+                    className="bg-primary hover:bg-primary/90 text-white font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer shrink-0"
                   >
                     {redeemLoading ? <Loader className="w-5 h-5 animate-spin" /> : 'Redeem Seat'}
                   </button>
@@ -609,7 +609,7 @@ export default function CheckoutPage() {
                       // Navigate user to checkout form to login / create account
                       setScreen('checkout');
                     }}
-                    className="inline-flex items-center gap-1 bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 bg-foreground hover:bg-slate-800 text-background font-bold px-5 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
                   >
                     <span>Login or Register First</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -633,7 +633,7 @@ export default function CheckoutPage() {
 
           {/* CTA Banner */}
           <section className="max-w-6xl mx-auto px-6 mt-20">
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-50/60 via-indigo-50/40 to-transparent border border-blue-100 rounded-3xl p-10 text-center shadow-sm">
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent border border-primary/20 rounded-3xl p-10 text-center shadow-sm">
               <div className="relative z-10 space-y-4">
                 <h3 className="text-2xl md:text-3xl font-extrabold font-display text-slate-900">
                   Ready to learn smarter?
@@ -643,7 +643,7 @@ export default function CheckoutPage() {
                 </p>
                 <button
                   onClick={() => plans.length > 0 && setScreen('checkout')}
-                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-8 py-3 rounded-full text-sm transition-all active:scale-95 shadow-md"
+                  className="bg-foreground hover:bg-slate-800 text-background font-bold px-8 py-3 rounded-full text-sm transition-all active:scale-95 shadow-md"
                 >
                   Start Learning Today
                 </button>
@@ -673,12 +673,12 @@ export default function CheckoutPage() {
           <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-md space-y-8 relative overflow-hidden">
 
             {/* Accent border top */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-secondary to-secondary-bright" />
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-250 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="inline-flex items-center gap-2 bg-secondary/10 border border-secondary/20 text-secondary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
                   <span>Active Membership</span>
                 </div>
                 <h1 className="text-3xl font-extrabold text-slate-900 font-display">Manage Membership</h1>
@@ -701,23 +701,23 @@ export default function CheckoutPage() {
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Subscription Status</h3>
                   <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-650 font-bold">User Account:</span>
+                      <span className="text-slate-600 font-bold">User Account:</span>
                       <span className="font-extrabold text-slate-900 truncate max-w-[200px]" title={user?.email}>{user?.email}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-650 font-bold">Member Since:</span>
+                      <span className="text-slate-600 font-bold">Member Since:</span>
                       <span className="font-extrabold text-slate-900">
                         {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-650 font-bold">Plan Status:</span>
-                      <span className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wide">
+                      <span className="text-slate-600 font-bold">Plan Status:</span>
+                      <span className="bg-secondary/10 border border-secondary/20 text-secondary text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wide">
                         Premium Active
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-3.5">
-                      <span className="text-slate-650 font-bold">Expiration Date:</span>
+                      <span className="text-slate-600 font-bold">Expiration Date:</span>
                       <span className="font-extrabold text-slate-900">
                         {profile?.web_subscription_expires_at
                           ? new Date(profile.web_subscription_expires_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
@@ -727,8 +727,8 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-slate-600 text-xs leading-relaxed space-y-2">
-                  <h4 className="font-bold text-blue-800">Looking to change plans?</h4>
+                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 text-slate-600 text-xs leading-relaxed space-y-2">
+                  <h4 className="font-bold text-primary">Looking to change plans?</h4>
                   <p>
                     Because you have an active membership, we prevent purchasing multiple overlapping subscriptions. To adjust billing details or cancel renewal, please contact support.
                   </p>
@@ -740,7 +740,7 @@ export default function CheckoutPage() {
                 <div>
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">How to Access Lectures</h3>
                   <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
-                    <p className="text-slate-605 text-xs leading-relaxed font-semibold">
+                    <p className="text-slate-600 text-xs leading-relaxed font-semibold">
                       Keeelai interactive, animated lecture modules are designed to run inside our secure mobile learning app. Note: You cannot run premium notes directly in the desktop browser.
                     </p>
                     <div className="space-y-2.5 pt-2">
@@ -748,14 +748,14 @@ export default function CheckoutPage() {
                         href="https://play.google.com/store/apps/details?id=com.keeelai.notes"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full bg-white border border-slate-200 hover:border-slate-350 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98"
+                        className="w-full bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98"
                       >
-                        <Smartphone className="w-4 h-4 text-emerald-600" />
+                        <Smartphone className="w-4 h-4 text-secondary" />
                         <span>Download Android App</span>
                       </a>
                       <Link
                         href="/contact"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-98"
+                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-98"
                       >
                         <span>Contact Billing Support</span>
                       </Link>
@@ -782,15 +782,15 @@ export default function CheckoutPage() {
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
       {/* Diagonal background decorations */}
-      <div className="absolute top-[-25%] left-[-25%] w-[70%] h-[70%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-25%] right-[-25%] w-[70%] h-[70%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-25%] left-[-25%] w-[70%] h-[70%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-25%] right-[-25%] w-[70%] h-[70%] rounded-full bg-secondary/5 blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-5xl z-10 relative">
 
         {/* Back button */}
         <button
           onClick={() => { setScreen('plans'); setMessage(null); }}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-905 hover:text-slate-900 font-semibold mb-6 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 font-semibold mb-6 transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           Back to Plans
@@ -820,10 +820,10 @@ export default function CheckoutPage() {
               const activeSymbol = activeRes.currency === 'INR' ? '₹' : '$';
 
               return (
-                <div className="bg-emerald-50 border border-emerald-200 text-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm">
+                <div className="bg-secondary/10 border border-secondary/20 text-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="text-emerald-700 text-[10px] font-bold uppercase tracking-widest mb-1.5">Selected Plan</p>
+                      <p className="text-secondary text-[10px] font-bold uppercase tracking-widest mb-1.5">Selected Plan</p>
                       <h2 className="text-xl font-extrabold font-display text-slate-900">{selectedPlanObj.name}</h2>
                       <p className="text-slate-500 text-xs mt-0.5">
                         {selectedPlanObj.duration_months} {selectedPlanObj.duration_months === 1 ? 'month' : 'months'} full access
@@ -831,7 +831,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="text-right">
                       <div className="flex flex-col items-end">
-                        <span className="text-3xl font-extrabold font-display bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+                        <span className="text-3xl font-extrabold font-display bg-gradient-to-r from-secondary to-secondary-bright bg-clip-text text-transparent">
                           {activeSymbol}{activeRes.priceAfterPlanDiscount.toFixed(activeRes.currency === 'INR' ? 0 : 2)}
                         </span>
                         {activeRes.planDiscountPercent > 0 && (
@@ -891,8 +891,8 @@ export default function CheckoutPage() {
             </div> */}
 
             {/* security lock */}
-            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-550 pt-2 border-t border-slate-200">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 pt-2 border-t border-slate-200">
+              <ShieldCheck className="w-4 h-4 text-secondary" />
               <span>Secure encryption. Payments processed via Razorpay.</span>
             </div>
           </div>
@@ -900,10 +900,10 @@ export default function CheckoutPage() {
           {/* Right Panel: login/reg auth and final billing summaries */}
           <div className="lg:col-span-6 flex">
             <div className="w-full bg-white border border-slate-200 rounded-3xl p-6 md:p-8 flex flex-col justify-between shadow-md relative">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-t-3xl" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary rounded-t-3xl" />
 
               {message && (
-                <div className={`p-3.5 mb-4 rounded-xl border text-xs font-semibold ${message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                <div className={`p-3.5 mb-4 rounded-xl border text-xs font-semibold ${message.type === 'success' ? 'bg-secondary/10 border-secondary/20 text-secondary' : 'bg-destructive/10 border-destructive/20 text-destructive'}`}>
                   {message.text}
                 </div>
               )}
@@ -914,13 +914,13 @@ export default function CheckoutPage() {
                   <div className="flex border-b border-slate-200 mb-2">
                     <button
                       onClick={() => { setIsLogin(true); setMessage(null); }}
-                      className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 cursor-pointer ${isLogin ? 'border-blue-500 text-blue-650' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+                      className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 cursor-pointer ${isLogin ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
                     >
                       Login
                     </button>
                     <button
                       onClick={() => { setIsLogin(false); setMessage(null); }}
-                      className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 cursor-pointer ${!isLogin ? 'border-blue-500 text-blue-650' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+                      className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 cursor-pointer ${!isLogin ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
                     >
                       Register
                     </button>
@@ -932,27 +932,27 @@ export default function CheckoutPage() {
                         <div>
                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Full Name</label>
                           <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your Name" required
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors" />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Phone Number</label>
                           <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit Mobile No." required
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors" />
                         </div>
                       </>
                     )}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Email Address</label>
                       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Password</label>
                       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors" />
                     </div>
                     <button type="submit" disabled={authLoading}
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center transition-all cursor-pointer text-xs uppercase tracking-wider">
+                      className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-xl flex items-center justify-center transition-all cursor-pointer text-xs uppercase tracking-wider">
                       {authLoading ? <Loader className="w-5 h-5 animate-spin" /> : <span>{isLogin ? 'Log In to Continue' : 'Create Account & Continue'}</span>}
                     </button>
                   </form>
@@ -979,23 +979,23 @@ export default function CheckoutPage() {
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="e.g. SAVE20"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:border-blue-500" />
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:border-primary" />
                         <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                       </div>
                       <button onClick={applyCoupon} disabled={couponLoading}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center shrink-0 cursor-pointer">
+                        className="bg-primary hover:bg-primary/90 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center shrink-0 cursor-pointer">
                         {couponLoading ? <Loader className="w-4 h-4 animate-spin" /> : <span>Apply</span>}
                       </button>
                     </div>
                   </div>
 
                   {/* Location & Jurisdiction Info Badge */}
-                  <div className="bg-blue-50/60 border border-blue-150 rounded-xl p-3 flex items-center justify-between text-xs font-semibold text-blue-900">
+                  <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between text-xs font-semibold text-primary">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                       <span>Detected Region:</span>
                     </span>
-                    <span className="font-bold bg-white border border-blue-200 px-2.5 py-0.5 rounded-md text-[11px]">
+                    <span className="font-bold bg-white border border-primary/30 px-2.5 py-0.5 rounded-md text-[11px]">
                       {resolved.isDomestic ? '🇮🇳 India (₹ INR)' : `🌍 International (${resolved.currency})`}
                     </span>
                   </div>
@@ -1007,13 +1007,13 @@ export default function CheckoutPage() {
                       <span className="font-bold text-slate-900">{symbol}{resolved.basePrice.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                     </div>
                     {resolved.planDiscountPercent > 0 && (
-                      <div className="flex justify-between text-emerald-700 font-bold">
+                      <div className="flex justify-between text-secondary font-bold">
                         <span>Introductory Offer (-{resolved.planDiscountPercent}%)</span>
                         <span>-{symbol}{resolved.planDiscountAmount.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                       </div>
                     )}
                     {appliedCoupon && (
-                      <div className="flex justify-between text-emerald-700 font-bold">
+                      <div className="flex justify-between text-secondary font-bold">
                         <span>Coupon '{appliedCoupon.code}' (-{appliedCoupon.discountPercent}%)</span>
                         <span>-{symbol}{resolved.couponDiscountAmount.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                       </div>
@@ -1032,7 +1032,7 @@ export default function CheckoutPage() {
                     )}
                     <div className="flex justify-between border-t border-slate-200 pt-2.5 text-sm font-black">
                       <span className="text-slate-900">Total Payable</span>
-                      <span className="text-blue-600">{symbol}{resolved.total.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
+                      <span className="text-primary">{symbol}{resolved.total.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                     </div>
                   </div>
 
@@ -1040,7 +1040,7 @@ export default function CheckoutPage() {
                   <button
                     onClick={startPayment}
                     disabled={processing}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs uppercase tracking-widest"
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs uppercase tracking-widest"
                   >
                     {processing ? (
                       <Loader className="w-5 h-5 animate-spin" />

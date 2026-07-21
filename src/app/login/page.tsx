@@ -69,14 +69,14 @@ export default function UserAuthPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-display">
               Welcome to Keeelai
             </h1>
-            <p className="text-slate-550 text-sm font-semibold">
+            <p className="text-slate-500 text-sm font-semibold">
               Log in to sync your library and access your notes offline.
             </p>
           </div>
 
           {/* Auth Card */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-md relative">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-t-3xl" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary rounded-t-3xl" />
 
             {/* Auth Screen toggles */}
             <div className="flex border-b border-slate-200 mb-6">
@@ -84,7 +84,7 @@ export default function UserAuthPage() {
                 type="button"
                 onClick={() => { setIsLogin(true); setMessage(null); }}
                 className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 transition-all cursor-pointer ${
-                  isLogin ? 'border-blue-500 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-650'
+                  isLogin ? 'border-primary text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'
                 }`}
               >
                 Sign In
@@ -93,7 +93,7 @@ export default function UserAuthPage() {
                 type="button"
                 onClick={() => { setIsLogin(false); setMessage(null); }}
                 className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 transition-all cursor-pointer ${
-                  !isLogin ? 'border-blue-500 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-650'
+                  !isLogin ? 'border-primary text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'
                 }`}
               >
                 Create Account
@@ -102,14 +102,14 @@ export default function UserAuthPage() {
 
             {message && (
               <div className={`p-4 mb-6 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${
-                message.type === 'success' 
-                  ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
-                  : 'bg-rose-50 border-rose-100 text-rose-700'
+                message.type === 'success'
+                  ? 'bg-secondary/10 border-secondary/20 text-secondary'
+                  : 'bg-destructive/10 border-destructive/20 text-destructive'
               }`}>
                 {message.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600" />
+                  <CheckCircle className="w-5 h-5 shrink-0 text-secondary" />
                 ) : (
-                  <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500" />
+                  <AlertTriangle className="w-5 h-5 shrink-0 text-destructive" />
                 )}
                 <span>{message.text}</span>
               </div>
@@ -127,7 +127,7 @@ export default function UserAuthPage() {
                       placeholder="John Doe" 
                       required
                       disabled={loading}
-                      className="w-full bg-slate-50 border border-slate-205 border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-all" 
                     />
                   </div>
                   <div>
@@ -139,7 +139,7 @@ export default function UserAuthPage() {
                       placeholder="10-digit Mobile No." 
                       required
                       disabled={loading}
-                      className="w-full bg-slate-50 border border-slate-205 border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-all" 
                     />
                   </div>
                 </>
@@ -154,7 +154,7 @@ export default function UserAuthPage() {
                   placeholder="name@example.com" 
                   required
                   disabled={loading}
-                  className="w-full bg-slate-50 border border-slate-205 border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-all" 
                 />
               </div>
 
@@ -167,14 +167,14 @@ export default function UserAuthPage() {
                   placeholder="••••••••" 
                   required
                   disabled={loading}
-                  className="w-full bg-slate-50 border border-slate-205 border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-all" 
                 />
               </div>
 
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center transition-all cursor-pointer text-xs uppercase tracking-wider shadow-sm hover:shadow active:scale-[0.98]"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 px-4 rounded-xl flex items-center justify-center transition-all cursor-pointer text-xs uppercase tracking-wider shadow-sm hover:shadow active:scale-[0.98]"
               >
                 {loading ? <Loader className="w-5 h-5 animate-spin" /> : <span>{isLogin ? 'Sign In' : 'Create Account'}</span>}
               </button>

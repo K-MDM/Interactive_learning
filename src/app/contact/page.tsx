@@ -73,9 +73,9 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="space-y-6 pt-6 border-t border-slate-205 border-slate-200">
+          <div className="space-y-6 pt-6 border-t border-slate-200">
             <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-650 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-primary shrink-0">
                 <Mail className="w-5 h-5" />
               </div>
               <div>
@@ -86,7 +86,7 @@ export default function ContactPage() {
             </div>
 
             <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-650 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-primary shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
@@ -97,7 +97,7 @@ export default function ContactPage() {
             </div>
 
             <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-650 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-primary shrink-0">
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
@@ -111,11 +111,11 @@ export default function ContactPage() {
 
         {/* Contact Form Card */}
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-md relative">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-t-3xl" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary rounded-t-3xl" />
 
           {submitted ? (
             <div className="text-center py-12 space-y-4">
-              <div className="mx-auto w-14 h-14 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-full flex items-center justify-center">
+              <div className="mx-auto w-14 h-14 bg-secondary/10 border border-secondary/20 text-secondary rounded-full flex items-center justify-center">
                 <CheckCircle className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 font-display">Message Sent!</h2>
@@ -143,7 +143,7 @@ export default function ContactPage() {
                     placeholder="John Doe"
                     required
                     disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -155,7 +155,7 @@ export default function ContactPage() {
                     placeholder="john@example.com"
                     required
                     disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
                   />
                 </div>
               </div>
@@ -169,7 +169,7 @@ export default function ContactPage() {
                   placeholder="How can we help you?"
                   required
                   disabled={loading}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
                 />
               </div>
 
@@ -182,14 +182,14 @@ export default function ContactPage() {
                   required
                   disabled={loading}
                   rows={5}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
               >
                 {loading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -149,7 +149,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                     className={cn(
                       "block duration-150 transition-colors",
                       isActive
-                        ? "text-[#0F172A] font-extrabold border-b-2 border-emerald-500 pb-0.5"
+                        ? "text-[#0F172A] font-extrabold border-b-2 border-secondary pb-0.5"
                         : "text-slate-600 hover:text-[#0F172A]"
                     )}
                   >
@@ -173,10 +173,10 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
                   aria-label={`User menu for ${authUser.firstName}`}
-                  className="flex items-center gap-2 cursor-pointer rounded-full py-1 pl-1 pr-3 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  className="flex items-center gap-2 cursor-pointer rounded-full py-1 pl-1 pr-3 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                 >
                   {/* Avatar circle */}
-                  <span className="h-7 w-7 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-xs font-extrabold select-none shrink-0">
+                  <span className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-extrabold select-none shrink-0">
                     {authUser.initial}
                   </span>
                   <span className="text-xs font-bold text-slate-700 max-w-[80px] truncate">
@@ -210,7 +210,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-[#0F172A] cursor-pointer transition-colors duration-100"
                   >
-                    <Key className="w-3.5 h-3.5 text-blue-600" />
+                    <Key className="w-3.5 h-3.5 text-primary" />
                     My Licences
                   </Link>
                   <Link
@@ -225,7 +225,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                   <button
                     role="menuitem"
                     onClick={handleSignOut}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors duration-100"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/10 cursor-pointer transition-colors duration-100"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Sign Out
@@ -238,7 +238,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                 <Button asChild variant="ghost" size="sm" className="h-9 px-4 text-xs font-bold text-slate-700 hover:text-[#0F172A] rounded-full border border-slate-200">
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button asChild size="sm" className="h-9 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all">
+                <Button asChild size="sm" className="h-9 px-4 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-full transition-all">
                   <Link href="/checkout">Sign Up</Link>
                 </Button>
               </div>
@@ -276,7 +276,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                   href={link.href}
                   className={cn(
                     "text-2xl font-black font-display tracking-tight transition-transform duration-300",
-                    isActive ? "text-emerald-600" : "text-slate-700 hover:text-[#0F172A]"
+                    isActive ? "text-secondary" : "text-slate-700 hover:text-[#0F172A]"
                   )}
                 >
                   {link.label}
@@ -290,7 +290,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
               /* ── Mobile: Logged-in actions ── */
               <>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-extrabold text-base select-none shrink-0">
+                  <span className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-extrabold text-base select-none shrink-0">
                     {authUser.initial}
                   </span>
                   <div>
@@ -300,7 +300,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                 </div>
                 <Link
                   href="/dashboard"
-                  className="w-full py-3.5 rounded-xl font-bold text-center bg-blue-600 text-white text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-3.5 rounded-xl font-bold text-center bg-primary text-primary-foreground text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm"
                 >
                   <Key className="w-4 h-4" />
                   My Licences
@@ -314,7 +314,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  className="w-full py-3.5 rounded-xl font-bold text-center bg-rose-50 hover:bg-rose-100 text-rose-600 text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 rounded-xl font-bold text-center bg-destructive/10 hover:bg-destructive/15 text-destructive text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
@@ -331,7 +331,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                 </Link>
                 <Link
                   href="/checkout"
-                  className="w-full py-3.5 rounded-xl font-bold text-center bg-blue-600 hover:bg-blue-500 text-white text-sm shadow-md transition-all active:scale-[0.99]"
+                  className="w-full py-3.5 rounded-xl font-bold text-center bg-primary hover:bg-primary/90 text-primary-foreground text-sm shadow-md transition-all active:scale-[0.99]"
                 >
                   Get Started
                 </Link>

@@ -18,7 +18,7 @@ export default function DemoLoading() {
 
         {/* Hero Skeleton */}
         <div className="text-center space-y-4 max-w-2xl mx-auto flex flex-col items-center">
-          <div className="h-6 w-36 bg-blue-100 rounded-full animate-pulse" />
+          <div className="h-6 w-36 bg-primary/10 rounded-full animate-pulse" />
           <div className="h-10 w-64 bg-slate-200/80 rounded-xl animate-pulse mt-2" />
           <div className="h-4 w-full bg-slate-200/60 rounded-lg animate-pulse mt-2" />
           <div className="h-4 w-5/6 bg-slate-200/60 rounded-lg animate-pulse" />

@@ -19,16 +19,16 @@ export function HeroSection() {
               <span>Immersive Visual Learning Simulator</span>
             </div>
 
-            <h1 className="max-w-2xl text-balance text-5xl md:text-6xl font-black font-display tracking-tight text-[#0F172A] xl:text-7xl leading-[1.05]">
+            {/* <h1 className="max-w-2xl text-balance text-5xl md:text-6xl font-black font-display tracking-tight text-[#0F172A] xl:text-7xl leading-[1.05]">
               Bring Any Subject <br />
               <span className="bg-gradient-to-r from-indigo-600 to-teal-500 bg-clip-text text-transparent">
                 To Life
               </span>
-            </h1>
+            </h1> */}
 
-            <blockquote className="my-5 border-l-4 border-emerald-550 border-emerald-500 pl-4 text-m font-semibold text-slate-500 italic max-w-xl text-left">
+            {/* <blockquote className="my-5 border-l-4 border-emerald-550 border-emerald-500 pl-4 text-m font-semibold text-slate-500 italic max-w-xl text-left">
               Keeelai is an interactive learning platform that helps teachers explain complex concepts and enables children to run hands-on virtual simulations across all subjects.
-            </blockquote>
+            </blockquote> */}
 
             {/* <p className="mt-4 max-w-2xl text-balance text-base md:text-lg text-slate-650 font-semibold leading-relaxed">
               Help your children visualize abstract concepts. Keeelai empowers teachers with live classroom simulations and gives children a hands-on virtual lab player to learn by doing.

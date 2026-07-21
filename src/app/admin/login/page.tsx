@@ -41,8 +41,8 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Decorative Gradients */}
-      <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-secondary/5 blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md z-10 space-y-6 relative">
         
@@ -55,23 +55,23 @@ export default function LoginPage() {
             </span>
           </Link>
           <h1 className="text-xl font-bold tracking-tight text-slate-900 font-display">Keeelai Admin Portal</h1>
-          <p className="text-slate-550 text-sm font-semibold">Please log in to manage your notes platform</p>
+          <p className="text-slate-500 text-sm font-semibold">Please log in to manage your notes platform</p>
         </div>
 
         {/* Login Card */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-md relative">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-t-3xl" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary rounded-t-3xl" />
 
           {message && (
             <div className={`p-4 mb-6 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${
-              message.type === 'success' 
-                ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
-                : 'bg-rose-50 border-rose-100 text-rose-700'
+              message.type === 'success'
+                ? 'bg-secondary/10 border-secondary/20 text-secondary'
+                : 'bg-destructive/10 border-destructive/20 text-destructive'
             }`}>
               {message.type === 'success' ? (
-                <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600" />
+                <CheckCircle className="w-5 h-5 shrink-0 text-secondary" />
               ) : (
-                <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500" />
+                <AlertTriangle className="w-5 h-5 shrink-0 text-destructive" />
               )}
               <span>{message.text}</span>
             </div>
@@ -87,7 +87,7 @@ export default function LoginPage() {
                 placeholder="admin@keeelai.com"
                 required
                 disabled={loading}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
               />
             </div>
             <div>
@@ -99,13 +99,13 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 disabled={loading}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
               />
             </div>
             <button 
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
             >
               {loading ? <Loader className="w-5 h-5 animate-spin" /> : <span>Sign In</span>}
             </button>

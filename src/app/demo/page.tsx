@@ -151,7 +151,7 @@ export default async function ExperienceZonePage() {
         <div className="flex items-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors text-sm font-semibold group"
+            className="inline-flex items-center gap-2 text-slate-500 hover:text-primary transition-colors text-sm font-semibold group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Home</span>
@@ -160,13 +160,13 @@ export default async function ExperienceZonePage() {
 
         {/* Hero Section */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 animate-pulse text-blue-600" />
+          <div className="inline-flex items-center space-x-2 bg-primary/10 border border-primary/20 text-primary px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 animate-pulse text-primary" />
             <span>K-12 Experience Zone</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight font-display leading-[1.15]">
             Explore the{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Interactive Experience Zone
             </span>
           </h1>
@@ -177,7 +177,7 @@ export default async function ExperienceZonePage() {
 
         {/* Content list */}
         {errorMsg ? (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-6 rounded-2xl text-center max-w-md mx-auto font-semibold">
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive p-6 rounded-2xl text-center max-w-md mx-auto font-semibold">
             {errorMsg}
           </div>
         ) : demoNotes.length === 0 ? (
@@ -192,7 +192,7 @@ export default async function ExperienceZonePage() {
             <div className="pt-2">
               <Link
                 href="/checkout"
-                className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 py-2.5 rounded-xl text-sm transition-all"
               >
                 View Pricing Plans
               </Link>
@@ -227,7 +227,7 @@ export default async function ExperienceZonePage() {
                   {group.notes.map((note: any) => (
                     <div
                       key={note.id}
-                      className="bg-white border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/[0.02] transition-all duration-300 group relative overflow-hidden"
+                      className="bg-white border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-primary/50 hover:shadow-lg hover:shadow-primary/[0.02] transition-all duration-300 group relative overflow-hidden"
                     >
                       {/* Glowing bottom gradient on hover */}
                       <div className={`absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r ${group.colorClass} transform translate-y-full group-hover:translate-y-0 transition-transform duration-300`} />
@@ -237,12 +237,12 @@ export default async function ExperienceZonePage() {
                           <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                             Interactive Simulation
                           </span>
-                          <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">
+                          <span className="text-[10px] text-primary font-bold uppercase tracking-wider">
                             Free Experience
                           </span>
                         </div>
 
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-display line-clamp-2">
+                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors font-display line-clamp-2">
                           {note.title}
                         </h3>
 
@@ -257,7 +257,7 @@ export default async function ExperienceZonePage() {
                           href={`/webview/notes/${note.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
                         >
                           <span>Launch Webview</span>
                           <ArrowRight className="w-3.5 h-3.5" />

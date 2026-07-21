@@ -89,7 +89,7 @@ export default function UserDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -103,7 +103,7 @@ export default function UserDashboardPage() {
         {/* Header Banner */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest block mb-1">
+            <span className="text-[10px] font-extrabold text-primary uppercase tracking-widest block mb-1">
               Customer Dashboard
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display">
@@ -117,7 +117,7 @@ export default function UserDashboardPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/checkout"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-3 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-5 py-3 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
               <span>Purchase New Licence</span>
@@ -129,7 +129,7 @@ export default function UserDashboardPage() {
         <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold font-display flex items-center gap-2">
-              <Download className="w-5 h-5 text-emerald-400" />
+              <Download className="w-5 h-5 text-secondary-bright" />
               <span>Download Keeelai Mobile / Desktop App</span>
             </h3>
             <p className="text-slate-400 text-xs mt-0.5">
@@ -176,7 +176,7 @@ export default function UserDashboardPage() {
 
           {licences.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-4 shadow-sm">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
                 <Key className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 font-display">No Licence Keys Found</h3>
@@ -185,7 +185,7 @@ export default function UserDashboardPage() {
               </p>
               <Link
                 href="/checkout"
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-sm"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-sm"
               >
                 <span>Browse Licence Plans</span>
                 <ArrowRight className="w-4 h-4" />
@@ -217,7 +217,7 @@ export default function UserDashboardPage() {
                             title="Copy Key"
                           >
                             {copiedKey === lic.key ? (
-                              <Check className="w-4 h-4 text-emerald-600" />
+                              <Check className="w-4 h-4 text-secondary" />
                             ) : (
                               <Copy className="w-4 h-4" />
                             )}
@@ -230,17 +230,17 @@ export default function UserDashboardPage() {
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase ${
                             lic.status === 'active'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-secondary/10 text-secondary border border-secondary/20'
                               : lic.status === 'pending'
                               ? 'bg-amber-50 text-amber-700 border border-amber-200'
                               : lic.status === 'expired'
                               ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-destructive/10 text-destructive border border-destructive/20'
                           }`}
                         >
-                          {lic.status === 'active' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                          {lic.status === 'active' && <CheckCircle2 className="w-3.5 h-3.5 text-secondary" />}
                           {lic.status === 'pending' && <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                          {lic.status === 'revoked' && <ShieldX className="w-3.5 h-3.5 text-rose-600" />}
+                          {lic.status === 'revoked' && <ShieldX className="w-3.5 h-3.5 text-destructive" />}
                           {lic.status === 'pending' ? 'Pending Activation' : lic.status}
                         </span>
                       </div>
@@ -251,7 +251,7 @@ export default function UserDashboardPage() {
                       
                       {/* Left: Activation Details */}
                       <div className="space-y-3 text-xs text-slate-600 w-full">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-150 p-4 rounded-2xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                               Activated On
@@ -288,7 +288,7 @@ export default function UserDashboardPage() {
                       {/* Right: QR Code */}
                       <div className="bg-slate-900 text-white p-3.5 rounded-2xl shrink-0 text-center shadow-sm">
                         <img src={qrUrl} alt="Licence QR Code" className="w-28 h-28 mx-auto rounded-xl bg-white p-1" />
-                        <span className="text-[9px] font-bold text-emerald-400 block mt-2 uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span className="text-[9px] font-bold text-secondary-bright block mt-2 uppercase tracking-widest flex items-center justify-center gap-1">
                           <QrCode className="w-3 h-3" /> Scan to Activate
                         </span>
                       </div>
