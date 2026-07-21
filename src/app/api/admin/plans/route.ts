@@ -43,9 +43,11 @@ export async function POST(request: Request) {
       const sanitizedPlans = plans.map((p: any) => ({
         id: p.id,
         name: p.name,
-        duration_months: p.duration_months,
-        price_usd: p.price_usd,
-        discount_percent: p.discount_percent || 0,
+        duration_months: Number(p.duration_months || 1),
+        price_usd: Number(p.price_usd || 0),
+        price_inr: p.price_inr !== undefined && p.price_inr !== null ? Number(p.price_inr) : null,
+        country_prices: p.country_prices || null,
+        discount_percent: Number(p.discount_percent || 0),
         subtext: p.subtext || null
       }));
 

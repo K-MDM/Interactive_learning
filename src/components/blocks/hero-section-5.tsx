@@ -73,7 +73,7 @@ export function HeroSection() {
       </div>
 
       {/* Brands Slider Section */}
-      <div className="bg-transparent border-t border-slate-200/60 pb-8 pt-4">
+      {/* <div className="bg-transparent border-t border-slate-200/60 pb-8 pt-4">
         <div className="group relative m-auto max-w-7xl px-6">
           <div className="flex flex-col items-center md:flex-row gap-6">
             <div className="md:max-w-44 md:border-r md:border-slate-200 md:pr-6 whitespace-nowrap">
@@ -176,7 +176,7 @@ export function HeroSection() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </section>
   );
 }

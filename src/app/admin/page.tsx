@@ -64,6 +64,16 @@ export default function AdminConsole() {
   const [linkAllClasses, setLinkAllClasses] = useState(true);
   const [linkAllSubjects, setLinkAllSubjects] = useState(true);
 
+  // Edit Note Modal States
+  const [isEditNoteModalOpen, setIsEditNoteModalOpen] = useState(false);
+  const [editingNoteData, setEditingNoteData] = useState<{ id: string; title: string; description: string; is_demo: boolean } | null>(null);
+  const [isUpdatingNote, setIsUpdatingNote] = useState(false);
+
+  // Delete Note Confirmation Modal States
+  const [isDeleteNoteModalOpen, setIsDeleteNoteModalOpen] = useState(false);
+  const [deletingNote, setDeletingNote] = useState<any>(null);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
+
   // Data States
   const [notes, setNotes] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -71,7 +81,10 @@ export default function AdminConsole() {
   // Settings States
   const [pricing, setPricing] = useState<any>({
     plans: [],
-    tax_percent: 18
+    tax_mode: 'domestic_only',
+    tax_percent: 18,
+    intl_fee_percent: 3.0,
+    domestic_country: 'IN'
   });
 
   // Plans Modal States
@@ -155,10 +168,17 @@ export default function AdminConsole() {
           .select('*');
 
         let taxPercent = 18;
+        let taxMode = 'domestic_only';
+        let intlFeePercent = 3.0;
+        let domesticCountry = 'IN';
+
         if (dbSettings) {
           const pricingRow = dbSettings.find(s => s.key === 'pricing');
           if (pricingRow && pricingRow.value) {
-            taxPercent = pricingRow.value.tax_percent || 18;
+            taxPercent = typeof pricingRow.value.tax_percent === 'number' ? pricingRow.value.tax_percent : 18;
+            taxMode = pricingRow.value.tax_mode || 'domestic_only';
+            intlFeePercent = typeof pricingRow.value.intl_fee_percent === 'number' ? pricingRow.value.intl_fee_percent : 3.0;
+            domesticCountry = pricingRow.value.domestic_country || 'IN';
           }
 
           const downloadsRow = dbSettings.find(s => s.key === 'downloads');
@@ -167,7 +187,10 @@ export default function AdminConsole() {
 
         setPricing({
           plans: dbPlans || [],
-          tax_percent: taxPercent
+          tax_mode: taxMode,
+          tax_percent: taxPercent,
+          intl_fee_percent: intlFeePercent,
+          domestic_country: domesticCountry,
         });
 
         // 4. Fetch metrics
@@ -246,6 +269,65 @@ export default function AdminConsole() {
       setMessage({ type: 'success', text: `Demo access updated.` });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to toggle demo status' });
+    }
+  };
+
+  // Handle Save Note Edit
+  const handleSaveNoteEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNoteData || !editingNoteData.title.trim()) return;
+
+    setIsUpdatingNote(true);
+    try {
+      const res = await fetch('/api/admin/notes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          noteId: editingNoteData.id,
+          title: editingNoteData.title,
+          description: editingNoteData.description,
+          isDemo: editingNoteData.is_demo,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setNotes(notes.map((n) => (n.id === editingNoteData.id ? { ...n, ...data.note } : n)));
+      setMessage({ type: 'success', text: `Lesson "${editingNoteData.title}" updated successfully.` });
+      setIsEditNoteModalOpen(false);
+      setEditingNoteData(null);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update lesson' });
+    } finally {
+      setIsUpdatingNote(false);
+    }
+  };
+
+  // Handle Delete Note
+  const handleConfirmDeleteNote = async () => {
+    if (!deletingNote) return;
+
+    setIsDeletingNote(true);
+    try {
+      const res = await fetch(`/api/admin/notes?id=${deletingNote.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setNotes(notes.filter((n) => n.id !== deletingNote.id));
+      setMessage({ type: 'success', text: `Lesson "${deletingNote.title}" deleted successfully.` });
+      setIsDeleteNoteModalOpen(false);
+      setDeletingNote(null);
+
+      // Refresh metrics
+      const metRes = await fetch('/api/admin/metrics');
+      const metData = await metRes.json();
+      if (!metData.error) setMetrics(metData);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to delete lesson' });
+    } finally {
+      setIsDeletingNote(false);
     }
   };
 
@@ -579,11 +661,19 @@ export default function AdminConsole() {
       const dataPricing = await resPricing.json();
       if (dataPricing.error) throw new Error(dataPricing.error);
 
-      // Save Tax Percent via secure settings API
+      // Save Tax & Jurisdiction settings via secure settings API
       const resTax = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'pricing', value: { tax_percent: pricing.tax_percent } })
+        body: JSON.stringify({
+          key: 'pricing',
+          value: {
+            tax_mode: pricing.tax_mode || 'domestic_only',
+            tax_percent: Number(pricing.tax_percent ?? 18),
+            intl_fee_percent: Number(pricing.intl_fee_percent ?? 3.0),
+            domestic_country: (pricing.domestic_country || 'IN').toUpperCase(),
+          }
+        })
       });
       const dataTax = await resTax.json();
       if (dataTax.error) throw new Error(dataTax.error);
@@ -1173,6 +1263,35 @@ export default function AdminConsole() {
                             {note.is_demo ? 'Disable Demo' : 'Make Demo'}
                           </button>
                         </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingNoteData({
+                                id: note.id,
+                                title: note.title,
+                                description: note.description || '',
+                                is_demo: note.is_demo || false,
+                              });
+                              setIsEditNoteModalOpen(true);
+                            }}
+                            className="bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 text-slate-700 hover:text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Edit Details</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeletingNote(note);
+                              setIsDeleteNoteModalOpen(true);
+                            }}
+                            className="bg-rose-50/70 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleOpenNoteTaxonomyModal(note)}
@@ -1387,7 +1506,7 @@ export default function AdminConsole() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-3">
                         {/* Duration */}
                         <div>
                           <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Duration (Months)</label>
@@ -1401,9 +1520,9 @@ export default function AdminConsole() {
                           />
                         </div>
 
-                        {/* Price */}
+                        {/* Price (USD) */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Price (USD)</label>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Intl. Price (USD)</label>
                           <input
                             type="number"
                             step="0.01"
@@ -1411,6 +1530,20 @@ export default function AdminConsole() {
                             value={editingPlan?.price_usd || ''}
                             onChange={(e) => setEditingPlan({ ...editingPlan, price_usd: parseFloat(e.target.value) || 0 })}
                             required
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+
+                        {/* Price (INR) */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">India Price (INR)</label>
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            placeholder="e.g. 990"
+                            value={editingPlan?.price_inr ?? ''}
+                            onChange={(e) => setEditingPlan({ ...editingPlan, price_inr: parseFloat(e.target.value) || 0 })}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
                           />
                         </div>
@@ -1473,18 +1606,128 @@ export default function AdminConsole() {
           {activeTab === 'settings' && (
             <form onSubmit={handleSaveSettings} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
 
-              {/* Global Config Section */}
-              <div className="space-y-4">
-                <h3 className="text-base font-bold text-slate-900 font-display border-b border-slate-100 pb-2">Global Settings</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Jurisdiction, Tax & International Fee Config Section */}
+              <div className="space-y-6">
+                <div className="border-b border-slate-100 pb-3">
+                  <h3 className="text-base font-bold text-slate-900 font-display">Jurisdiction & Tax Configuration</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Configure tax rules, international processing fees, and home country ISO settings.</p>
+                </div>
+
+                {/* Tax Applicability Mode */}
+                <div className="space-y-3">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Tax Applicability Mode</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                      pricing.tax_mode === 'domestic_only'
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs">Domestic (India) Only</span>
+                        <input
+                          type="radio"
+                          name="tax_mode"
+                          value="domestic_only"
+                          checked={pricing.tax_mode === 'domestic_only'}
+                          onChange={() => setPricing({ ...pricing, tax_mode: 'domestic_only' })}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500/20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-500 leading-normal">
+                        Apply tax rate to domestic buyers only. International exports are 0% tax exempt.
+                      </span>
+                    </label>
+
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                      pricing.tax_mode === 'all'
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs">All Transactions</span>
+                        <input
+                          type="radio"
+                          name="tax_mode"
+                          value="all"
+                          checked={pricing.tax_mode === 'all'}
+                          onChange={() => setPricing({ ...pricing, tax_mode: 'all' })}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500/20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-500 leading-normal">
+                        Apply standard tax rate globally to all buyers regardless of location.
+                      </span>
+                    </label>
+
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                      pricing.tax_mode === 'per_country'
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs">Per-Country Rates</span>
+                        <input
+                          type="radio"
+                          name="tax_mode"
+                          value="per_country"
+                          checked={pricing.tax_mode === 'per_country'}
+                          onChange={() => setPricing({ ...pricing, tax_mode: 'per_country' })}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500/20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-500 leading-normal">
+                        Apply custom tax rates configured individually per country ISO code.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tax Rate, Intl Fee %, Domestic Country inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Global Tax Rate (%)</label>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      Default Tax Rate (%)
+                    </label>
                     <input
-                      type="number" min="0" max="100"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
                       value={pricing.tax_percent}
-                      onChange={(e) => setPricing({ ...pricing, tax_percent: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500"
+                      onChange={(e) => setPricing({ ...pricing, tax_percent: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-semibold focus:outline-none focus:border-blue-500 focus:bg-white"
                     />
+                    <span className="text-[10px] text-slate-400 block mt-1">Standard GST/VAT rate (e.g. 18%)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      Intl. Processing Fee (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      step="0.1"
+                      value={pricing.intl_fee_percent}
+                      onChange={(e) => setPricing({ ...pricing, intl_fee_percent: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-semibold focus:outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                    <span className="text-[10px] text-slate-400 block mt-1">Cross-border gateway fee (e.g. 3.0%)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      Domestic Country ISO Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={2}
+                      value={pricing.domestic_country}
+                      onChange={(e) => setPricing({ ...pricing, domestic_country: e.target.value.toUpperCase() })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-semibold uppercase focus:outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                    <span className="text-[10px] text-slate-400 block mt-1">Home country ISO code (e.g. IN)</span>
                   </div>
                 </div>
               </div>
@@ -2496,6 +2739,132 @@ export default function AdminConsole() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* EDIT NOTE MODAL */}
+          {isEditNoteModalOpen && editingNoteData && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 font-display">
+                    <Edit className="w-5 h-5 text-blue-600" />
+                    <span>Edit Lesson Details</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditNoteModalOpen(false);
+                      setEditingNoteData(null);
+                    }}
+                    className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveNoteEdit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Lesson Title
+                    </label>
+                    <input
+                      type="text"
+                      value={editingNoteData.title}
+                      onChange={(e) => setEditingNoteData({ ...editingNoteData, title: e.target.value })}
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editingNoteData.description || ''}
+                      onChange={(e) => setEditingNoteData({ ...editingNoteData, description: e.target.value })}
+                      rows={3}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 resize-none font-medium"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2.5 bg-blue-50/50 p-3.5 rounded-xl border border-blue-150">
+                    <input
+                      type="checkbox"
+                      id="editIsDemo"
+                      checked={editingNoteData.is_demo}
+                      onChange={(e) => setEditingNoteData({ ...editingNoteData, is_demo: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                    />
+                    <label htmlFor="editIsDemo" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                      Public Free Demo Lesson (Experience Zone)
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditNoteModalOpen(false);
+                        setEditingNoteData(null);
+                      }}
+                      disabled={isUpdatingNote}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUpdatingNote || !editingNoteData.title.trim()}
+                      className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-blue-300"
+                    >
+                      {isUpdatingNote ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Save Changes</span>}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* DELETE NOTE CONFIRMATION MODAL */}
+          {isDeleteNoteModalOpen && deletingNote && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-slate-900 font-display">Delete Lesson</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Are you sure you want to delete <span className="font-bold text-slate-800">"{deletingNote.title}"</span>? This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDeleteNoteModalOpen(false);
+                      setDeletingNote(null);
+                    }}
+                    disabled={isDeletingNote}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDeleteNote}
+                    disabled={isDeletingNote}
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-rose-300"
+                  >
+                    {isDeletingNote ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Delete Lesson</span>}
+                  </button>
+                </div>
               </div>
             </div>
           )}

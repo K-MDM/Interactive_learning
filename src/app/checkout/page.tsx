@@ -9,6 +9,7 @@ import {
   ShieldCheck, BookOpen, CheckCircle, ArrowRight, Loader,
   Tag, Info, ChevronLeft, Zap, Star, Crown, Check, Smartphone
 } from 'lucide-react';
+import { resolveJurisdictionPricing, PricingSettings } from '@/lib/geo';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -26,10 +27,16 @@ export default function CheckoutPage() {
   // Screen control: 'plans' -> 'checkout'
   const [screen, setScreen] = useState<Screen>('plans');
 
-  // Dynamic config loaded from DB
+  // Dynamic config & Geolocation states
   const [pricing, setPricing] = useState<any>({ plans: [], tax_percent: 18 });
-  const [exchangeRate, setExchangeRate] = useState(83.5);
-  const [currency, setCurrency] = useState<'USD' | 'INR'>('USD');
+  const [pricingSettings, setPricingSettings] = useState<PricingSettings>({
+    tax_mode: 'domestic_only',
+    tax_percent: 18,
+    intl_fee_percent: 3.0,
+    domestic_country: 'IN'
+  });
+  const [detectedCountry, setDetectedCountry] = useState<string>('IN');
+  const [currency, setCurrency] = useState<'USD' | 'INR'>('INR');
 
   // Checkout choices
   const [selectedPlan, setSelectedPlan] = useState<string>('');
@@ -49,16 +56,38 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Detect currency based on timezone
+  // Detect user IP country on load
   useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz && (tz.includes('Calcutta') || tz.includes('Asia/Kolkata') || tz.includes('India'))) {
+    async function detectGeo() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.country_code) {
+            const country = data.country_code.toUpperCase();
+            setDetectedCountry(country);
+            setCurrency(country === 'IN' ? 'INR' : 'USD');
+            return;
+          }
+        }
+      } catch (e) {
+        // Silent fallback
+      }
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz && (tz.includes('Calcutta') || tz.includes('Asia/Kolkata') || tz.includes('India'))) {
+          setDetectedCountry('IN');
+          setCurrency('INR');
+        } else {
+          setDetectedCountry('US');
+          setCurrency('USD');
+        }
+      } catch (e) {
+        setDetectedCountry('IN');
         setCurrency('INR');
       }
-    } catch (e) {
-      console.warn('Could not auto-detect timezone/currency', e);
     }
+    detectGeo();
   }, []);
 
   // Fetch configs and user session
@@ -81,7 +110,6 @@ export default function CheckoutPage() {
           .select('*')
           .order('created_at', { ascending: true });
 
-        let taxPercent = 18;
         const { data: priceData } = await supabase
           .from('settings')
           .select('value')
@@ -89,11 +117,11 @@ export default function CheckoutPage() {
           .single();
 
         if (priceData?.value) {
-          taxPercent = priceData.value.tax_percent || 18;
+          setPricingSettings(priceData.value);
         }
 
         if (dbPlans && dbPlans.length > 0) {
-          setPricing({ plans: dbPlans, tax_percent: taxPercent });
+          setPricing({ plans: dbPlans, tax_percent: priceData?.value?.tax_percent || 18 });
           const has12m = dbPlans.find((p: any) => p.id === '12m');
           setSelectedPlan(has12m ? '12m' : dbPlans[0].id);
         } else {
@@ -102,13 +130,8 @@ export default function CheckoutPage() {
             { id: '6m', name: '6 Months Plan', duration_months: 6, price_usd: 14.99, discount_percent: 0, subtext: 'Best value built-in' },
             { id: '12m', name: '12 Months (Introductory Offer)', duration_months: 12, price_usd: 99.99, discount_percent: 20, subtext: 'Introductory annual deal' }
           ];
-          setPricing({ plans: defaultPlans, tax_percent: taxPercent });
-          setSelectedPlan('12m');
+          setPricing({ plans: defaultPlans, tax_percent: priceData?.value?.tax_percent || 18 });
         }
-
-        const rateRes = await fetch('/api/payments/exchange-rate');
-        const rateData = await rateRes.json();
-        if (rateData.rate) setExchangeRate(rateData.rate);
       } catch (err) {
         console.error('Failed to load portal configuration', err);
       } finally {
@@ -192,7 +215,7 @@ export default function CheckoutPage() {
       if (data.error) throw new Error(data.error);
 
       setMessage({ type: 'success', text: 'School access code redeemed successfully! Welcome to Keeelai Premium.' });
-      
+
       // Reload profile
       const { data: dbProfile } = await supabase
         .from('profiles')
@@ -213,12 +236,11 @@ export default function CheckoutPage() {
     setMessage(null);
 
     const planObj = Array.isArray(pricing.plans) ? pricing.plans.find((p: any) => p.id === selectedPlan) : null;
-    const baseVal = planObj ? planObj.price_usd : 0;
-    const planDisc = planObj ? (planObj.discount_percent || 0) : 0;
-    const priceAfterIntro = baseVal * (1 - planDisc / 100);
+    const planRes = resolveJurisdictionPricing(planObj || {}, detectedCountry, pricingSettings, 0, currency);
+    const priceAfterIntro = planRes.discountedPrice;
 
     try {
-      const res = await fetch(`/api/payments/coupon?code=${encodeURIComponent(couponCode)}&planId=${selectedPlan}&price=${priceAfterIntro}`);
+      const res = await fetch(`/api/payments/coupon?code=${encodeURIComponent(couponCode)}&planId=${selectedPlan}&price=${priceAfterIntro}&currency=${currency}`);
       const data = await res.json();
 
       if (data.valid) {
@@ -240,10 +262,11 @@ export default function CheckoutPage() {
       const revalidateCoupon = async () => {
         const planObj = Array.isArray(pricing.plans) ? pricing.plans.find((p: any) => p.id === selectedPlan) : null;
         if (!planObj) return;
-        const priceAfterIntro = planObj.price_usd * (1 - (planObj.discount_percent || 0) / 100);
+        const planRes = resolveJurisdictionPricing(planObj, detectedCountry, pricingSettings, 0, currency);
+        const priceAfterIntro = planRes.discountedPrice;
 
         try {
-          const res = await fetch(`/api/payments/coupon?code=${encodeURIComponent(appliedCoupon.code)}&planId=${selectedPlan}&price=${priceAfterIntro}`);
+          const res = await fetch(`/api/payments/coupon?code=${encodeURIComponent(appliedCoupon.code)}&planId=${selectedPlan}&price=${priceAfterIntro}&currency=${currency}`);
           const data = await res.json();
           if (!data.valid) {
             setAppliedCoupon(null);
@@ -255,7 +278,7 @@ export default function CheckoutPage() {
       };
       revalidateCoupon();
     }
-  }, [selectedPlan, pricing.plans]);
+  }, [selectedPlan, pricing.plans, currency]);
 
   // Redirect subscribed users to membership management dashboard
   useEffect(() => {
@@ -270,24 +293,20 @@ export default function CheckoutPage() {
     }
   }, [profile, screen]);
 
-  // Pricing calculations
+  // Pricing calculations using jurisdiction pricing helper
   const selectedPlanObj = Array.isArray(pricing.plans)
     ? pricing.plans.find((p: any) => p.id === selectedPlan)
     : null;
 
-  const basePriceUsd = selectedPlanObj ? selectedPlanObj.price_usd : 0;
-  const planDiscountPercent = selectedPlanObj ? (selectedPlanObj.discount_percent || 0) : 0;
-  const priceAfterIntroUsd = basePriceUsd * (1 - planDiscountPercent / 100);
+  const resolved = resolveJurisdictionPricing(
+    selectedPlanObj || {},
+    detectedCountry,
+    pricingSettings,
+    appliedCoupon ? appliedCoupon.discountPercent : 0,
+    currency
+  );
 
-  let finalBaseUsd = priceAfterIntroUsd;
-  if (appliedCoupon) {
-    finalBaseUsd = priceAfterIntroUsd * (1 - appliedCoupon.discountPercent / 100);
-  }
-
-  const activePriceBase = currency === 'INR' ? finalBaseUsd * exchangeRate : finalBaseUsd;
-  const taxAmount = activePriceBase * (pricing.tax_percent / 100);
-  const totalAmount = activePriceBase + taxAmount;
-  const symbol = currency === 'INR' ? '₹' : '$';
+  const symbol = resolved.currency === 'INR' ? '₹' : '$';
 
   const startPayment = async () => {
     setProcessing(true);
@@ -393,22 +412,24 @@ export default function CheckoutPage() {
         <div className="absolute bottom-[-25%] right-[-25%] w-[75%] h-[75%] rounded-full bg-emerald-500/5 blur-[130px] pointer-events-none" />
 
         {/* Global Navbar */}
-        <Navbar rightSlot={
-          <div className="flex bg-slate-100 border border-slate-200 p-0.5 rounded-xl">
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${currency === 'USD' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900'}`}
-            >
-              $ USD
-            </button>
-            <button
-              onClick={() => setCurrency('INR')}
-              className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${currency === 'INR' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900'}`}
-            >
-              ₹ INR
-            </button>
-          </div>
-        } />
+        <Navbar
+        //  rightSlot={
+        //   <div className="flex bg-slate-100 border border-slate-200 p-0.5 rounded-xl">
+        //     <button
+        //       onClick={() => { setCurrency('USD'); setDetectedCountry('US'); }}
+        //       className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${currency === 'USD' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900'}`}
+        //     >
+        //       $ USD
+        //     </button>
+        //     <button
+        //       onClick={() => { setCurrency('INR'); setDetectedCountry('IN'); }}
+        //       className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${currency === 'INR' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900'}`}
+        //     >
+        //       ₹ INR
+        //     </button>
+        //   </div>
+        // } 
+        />
 
         <main className="pt-32 pb-20 relative z-10">
           {/* Hero */}
@@ -436,9 +457,8 @@ export default function CheckoutPage() {
                 {plans.map((plan: any, idx: number) => {
                   const isPopular = idx === popularIdx && plans.length > 1;
                   const hasDiscount = (plan.discount_percent || 0) > 0;
-                  const discountedPriceUsd = plan.price_usd * (1 - (plan.discount_percent || 0) / 100);
-                  const priceInr = discountedPriceUsd * exchangeRate;
-                  const originalPriceInr = plan.price_usd * exchangeRate;
+                  const planResolved = resolveJurisdictionPricing(plan, detectedCountry, pricingSettings, 0, currency);
+                  const cardSymbol = planResolved.currency === 'INR' ? '₹' : '$';
                   const isSelected = selectedPlan === plan.id;
                   const features = getPlanFeatures(plan, idx);
 
@@ -487,13 +507,13 @@ export default function CheckoutPage() {
 
                         {/* Price */}
                         <div className="my-6">
-                          <div className="flex items-end gap-2">
+                          <div className="flex items-baseline gap-2 flex-wrap">
                             <span className={`text-4xl font-extrabold tracking-tight font-display ${isPopular ? 'bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent' : 'text-slate-900'}`}>
-                              {symbol}{currency === 'INR' ? priceInr.toFixed(0) : discountedPriceUsd.toFixed(2)}
+                              {cardSymbol}{planResolved.priceAfterPlanDiscount.toFixed(planResolved.currency === 'INR' ? 0 : 2)}
                             </span>
                             {hasDiscount && (
-                              <span className="text-xs text-slate-400 line-through mb-1.5">
-                                {symbol}{currency === 'INR' ? originalPriceInr.toFixed(0) : plan.price_usd.toFixed(2)}
+                              <span className="text-sm font-bold text-slate-400 line-through">
+                                {cardSymbol}{planResolved.basePrice.toFixed(planResolved.currency === 'INR' ? 0 : 2)}
                               </span>
                             )}
                           </div>
@@ -540,7 +560,7 @@ export default function CheckoutPage() {
           <section className="max-w-2xl mx-auto px-6 mt-16">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-teal-400" />
-              
+
               <div className="text-center space-y-2">
                 <span className="inline-block bg-blue-50 border border-blue-200 text-blue-750 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                   School License Redemption
@@ -552,11 +572,10 @@ export default function CheckoutPage() {
               </div>
 
               {message && (message.text.includes('School access code') || message.text.includes('license code')) && (
-                <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${
-                  message.type === 'success' 
-                    ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
-                    : 'bg-rose-50 border-rose-100 text-rose-700'
-                }`}>
+                <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${message.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                  : 'bg-rose-50 border-rose-100 text-rose-700'
+                  }`}>
                   {message.text}
                 </div>
               )}
@@ -797,10 +816,8 @@ export default function CheckoutPage() {
 
             {/* Active Card Summary */}
             {selectedPlanObj && (() => {
-              const discountedPriceUsd = basePriceUsd * (1 - planDiscountPercent / 100);
-              const priceToShow = currency === 'INR'
-                ? discountedPriceUsd * exchangeRate
-                : discountedPriceUsd;
+              const activeRes = resolveJurisdictionPricing(selectedPlanObj, detectedCountry, pricingSettings, 0, currency);
+              const activeSymbol = activeRes.currency === 'INR' ? '₹' : '$';
 
               return (
                 <div className="bg-emerald-50 border border-emerald-200 text-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm">
@@ -813,21 +830,18 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="text-3xl font-extrabold font-display bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-                        {symbol}{priceToShow.toFixed(currency === 'INR' ? 0 : 2)}
-                      </span>
-                      {planDiscountPercent > 0 && (
-                        <span className="block text-slate-400 text-xs line-through mt-1">
-                          {symbol}{currency === 'INR' ? (basePriceUsd * exchangeRate).toFixed(0) : basePriceUsd.toFixed(2)}
+                      <div className="flex flex-col items-end">
+                        <span className="text-3xl font-extrabold font-display bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+                          {activeSymbol}{activeRes.priceAfterPlanDiscount.toFixed(activeRes.currency === 'INR' ? 0 : 2)}
                         </span>
-                      )}
+                        {activeRes.planDiscountPercent > 0 && (
+                          <span className="text-xs font-bold text-slate-400 line-through">
+                            {activeSymbol}{activeRes.basePrice.toFixed(activeRes.currency === 'INR' ? 0 : 2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  {planDiscountPercent > 0 && (
-                    <span className="inline-block bg-white/60 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase px-3 py-1 rounded-lg">
-                      {planDiscountPercent}% Plan Discount Applied
-                    </span>
-                  )}
                 </div>
               );
             })()}
@@ -836,8 +850,8 @@ export default function CheckoutPage() {
             <div className="space-y-2.5">
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Switch Plan</p>
               {Array.isArray(pricing.plans) && pricing.plans.filter((p: any) => p.id !== selectedPlan).map((plan: any) => {
-                const disc = plan.price_usd * (1 - (plan.discount_percent || 0) / 100);
-                const priceToShow = currency === 'INR' ? disc * exchangeRate : disc;
+                const planRes = resolveJurisdictionPricing(plan, detectedCountry, pricingSettings, 0, currency);
+                const s = planRes.currency === 'INR' ? '₹' : '$';
                 return (
                   <div
                     key={plan.id}
@@ -845,29 +859,36 @@ export default function CheckoutPage() {
                     className="flex items-center justify-between border border-slate-200 bg-white rounded-xl px-4 py-3 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all"
                   >
                     <span className="text-sm font-bold text-slate-700">{plan.name}</span>
-                    <span className="text-sm font-extrabold text-slate-900">
-                      {symbol}{priceToShow.toFixed(currency === 'INR' ? 0 : 2)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-extrabold text-slate-900">
+                        {s}{planRes.priceAfterPlanDiscount.toFixed(planRes.currency === 'INR' ? 0 : 2)}
+                      </span>
+                      {planRes.planDiscountPercent > 0 && (
+                        <span className="text-xs font-bold text-slate-400 line-through">
+                          {s}{planRes.basePrice.toFixed(planRes.currency === 'INR' ? 0 : 2)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Currency details toggle */}
+            {/* Currency details toggle
             <div className="flex bg-slate-100 border border-slate-200 p-1 rounded-xl self-start">
               <button
-                onClick={() => setCurrency('USD')}
+                onClick={() => { setCurrency('USD'); setDetectedCountry('US'); }}
                 className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${currency === 'USD' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 USD ($)
               </button>
               <button
-                onClick={() => setCurrency('INR')}
+                onClick={() => { setCurrency('INR'); setDetectedCountry('IN'); }}
                 className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${currency === 'INR' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 INR (₹)
               </button>
-            </div>
+            </div> */}
 
             {/* security lock */}
             <div className="hidden lg:flex items-center gap-2 text-xs text-slate-550 pt-2 border-t border-slate-200">
@@ -968,41 +989,50 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {/* Location & Jurisdiction Info Badge */}
+                  <div className="bg-blue-50/60 border border-blue-150 rounded-xl p-3 flex items-center justify-between text-xs font-semibold text-blue-900">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                      <span>Detected Region:</span>
+                    </span>
+                    <span className="font-bold bg-white border border-blue-200 px-2.5 py-0.5 rounded-md text-[11px]">
+                      {resolved.isDomestic ? '🇮🇳 India (₹ INR)' : `🌍 International (${resolved.currency})`}
+                    </span>
+                  </div>
+
                   {/* Pricing breakdown */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5 text-xs text-slate-600 my-4 font-semibold">
                     <div className="flex justify-between">
-                      <span>Plan Base (USD)</span>
-                      <span className="font-bold text-slate-900">${basePriceUsd.toFixed(2)}</span>
+                      <span>Regular Price ({resolved.currency})</span>
+                      <span className="font-bold text-slate-900">{symbol}{resolved.basePrice.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                     </div>
-                    {planDiscountPercent > 0 && (
+                    {resolved.planDiscountPercent > 0 && (
                       <div className="flex justify-between text-emerald-700 font-bold">
-                        <span>Plan Discount ({planDiscountPercent}%)</span>
-                        <span>-${(basePriceUsd * (planDiscountPercent / 100)).toFixed(2)}</span>
+                        <span>Introductory Offer (-{resolved.planDiscountPercent}%)</span>
+                        <span>-{symbol}{resolved.planDiscountAmount.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                       </div>
                     )}
                     {appliedCoupon && (
                       <div className="flex justify-between text-emerald-700 font-bold">
-                        <span>Coupon ({appliedCoupon.discountPercent}%)</span>
-                        <span>-${(priceAfterIntroUsd * (appliedCoupon.discountPercent / 100)).toFixed(2)}</span>
+                        <span>Coupon '{appliedCoupon.code}' (-{appliedCoupon.discountPercent}%)</span>
+                        <span>-{symbol}{resolved.couponDiscountAmount.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                       </div>
                     )}
-                    {currency === 'INR' && (
-                      <div className="flex justify-between text-slate-450 border-t border-slate-200 pt-2.5">
-                        <span className="flex items-center gap-1"><Info className="w-3.5 h-3.5" /> Exch. Rate</span>
-                        <span>$1 = ₹{exchangeRate.toFixed(2)}</span>
+                    {!resolved.isDomestic && resolved.intlFeePercent > 0 && (
+                      <div className="flex justify-between text-slate-700 font-semibold border-t border-slate-200 pt-2">
+                        <span>Intl. Processing Fee (+{resolved.intlFeePercent}%)</span>
+                        <span className="font-bold text-slate-900">+{symbol}{resolved.intlFeeAmount.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between border-t border-slate-200 pt-2.5">
-                      <span>Subtotal ({currency})</span>
-                      <span className="font-bold text-slate-900">{symbol}{activePriceBase.toFixed(currency === 'INR' ? 0 : 2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tax ({pricing.tax_percent}%)</span>
-                      <span className="font-bold text-slate-900">{symbol}{taxAmount.toFixed(currency === 'INR' ? 0 : 2)}</span>
-                    </div>
+                    {resolved.taxPercent > 0 && (
+                      <div className="flex justify-between">
+                        <span>Tax (+{resolved.taxPercent}%)</span>
+                        <span className="font-bold text-slate-900">+{symbol}{resolved.taxAmount.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between border-t border-slate-200 pt-2.5 text-sm font-black">
-                      <span className="text-slate-900">Grand Total</span>
-                      <span className="text-blue-600">{symbol}{totalAmount.toFixed(currency === 'INR' ? 0 : 2)}</span>
+                      <span className="text-slate-900">Total Payable</span>
+                      <span className="text-blue-600">{symbol}{resolved.total.toFixed(resolved.currency === 'INR' ? 0 : 2)}</span>
                     </div>
                   </div>
 
@@ -1027,7 +1057,7 @@ export default function CheckoutPage() {
           </div>
 
         </div>
-      </div>
-    </main>
+      </div >
+    </main >
   );
 }
