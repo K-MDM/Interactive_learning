@@ -1,0 +1,66 @@
+# services:
+#   nginx-proxy:
+#     image: nginxproxy/nginx-proxy
+#     container_name: nginx-proxy
+#     restart: always
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - certs:/etc/nginx/certs
+#       - html:/usr/share/nginx/html
+#       - /var/run/docker.sock:/tmp/docker.sock:ro
+#     labels:
+#       com.github.nginx-proxy.nginx: "true"
+#     networks:
+#       - app-net
+
+#   letsencrypt:a
+#     image: nginxproxy/acme-companion
+#     container_name: nginx-letsencrypt
+#     restart: always
+#     environment:
+#       - DEFAULT_EMAIL=amarkounsal@gmail.com
+#       - NGINX_PROXY_CONTAINER=nginx-proxy
+#     volumes:
+#       - certs:/etc/nginx/certs
+#       - html:/usr/share/nginx/html
+#       - /var/run/docker.sock:/tmp/docker.sock:ro
+#       - /var/run/docker.sock:/var/run/docker.sock:ro
+#       - acme:/etc/acme.sh
+#     networks:
+#       - app-net
+
+#   interactive_learning:
+#     build:
+#       context: .
+#       dockerfile: dockerfile
+#       args:
+#         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+#         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+#         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://keeelai.com}
+#         NEXT_PUBLIC_RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+#         RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+#     container_name: interactive_learning
+#     restart: unless-stopped
+#     env_file:
+#       - .env
+#     ports:
+#       - "3001:3000"
+#     environment:
+#       PORT: 3000
+#       VIRTUAL_PORT: 3000
+#       VIRTUAL_HOST: keeelai.com,www.keeelai.com
+#       LETSENCRYPT_HOST: keeelai.com,www.keeelai.com
+#       LETSENCRYPT_EMAIL: amarkounsal@gmail.com
+#       NEXT_PUBLIC_RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+#     networks:
+#       - app-net
+
+# networks:
+#   app-net:
+
+# volumes:
+#   certs:
+#   html:
+#   acme:
