@@ -295,7 +295,7 @@ export default function LandingPage() {
                 href="/checkout"
                 className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer"
               >
-                <span>View Membership Plans</span>
+                <span>Eplore Plans</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
               <Link
