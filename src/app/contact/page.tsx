@@ -8,27 +8,48 @@ import SceneBackdrop from '@/components/three/SceneBackdrop';
 import Reveal from '@/components/motion/Reveal';
 
 export default function ContactPage() {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [ticketRef, setTicketRef] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
-    // Simulate submission
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      setTicketRef(data.ticketRef);
       setSubmitted(true);
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
-    }, 1200);
+    } catch {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
@@ -123,10 +144,17 @@ export default function ContactPage() {
               </div>
               <h2 className="text-2xl font-bold text-slate-900 font-display">Message Sent!</h2>
               <p className="text-slate-600 text-sm max-w-sm mx-auto leading-relaxed font-semibold">
-                Thank you for contacting us. Our operations support team has received your message and will reach out to you shortly.
+                Thank you for reaching out. Our support team will respond within 2 hours.
               </p>
+              {ticketRef && (
+                <div className="inline-flex flex-col items-center gap-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Your Ticket Reference</span>
+                  <span className="text-xl font-black text-slate-900 font-display tracking-wide">{ticketRef}</span>
+                  <span className="text-[10px] text-slate-500 font-semibold">Save this ID to track your request</span>
+                </div>
+              )}
               <button
-                onClick={() => setSubmitted(false)}
+                onClick={() => { setSubmitted(false); setTicketRef(''); }}
                 className="mt-6 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
               >
                 Send Another Message
@@ -188,6 +216,12 @@ export default function ContactPage() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-candy-blue focus:bg-white transition-colors resize-none"
                 />
               </div>
+
+              {error && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold px-4 py-3 rounded-xl">
+                  {error}
+                </div>
+              )}
 
               <button
                 type="submit"

@@ -14,7 +14,7 @@ import LicenceManager from './LicenceManager';
 export default function AdminConsole() {
   const supabase = createClient();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students' | 'taxonomy'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students' | 'taxonomy' | 'tickets'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -105,6 +105,11 @@ export default function AdminConsole() {
     estimatedMRR: 0,
     recentSignups: [] as any[]
   });
+
+  // Support Tickets State
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketFilter, setTicketFilter] = useState<'all' | 'open' | 'in_progress' | 'resolved'>('all');
+  const [ticketUpdating, setTicketUpdating] = useState<string | null>(null);
 
   // New Coupon Form States
   const [newCouponCode, setNewCouponCode] = useState('');
@@ -212,6 +217,13 @@ export default function AdminConsole() {
         setClasses(dataTax.classes || []);
         setSubjects(dataTax.subjects || []);
         setContentTypes(dataTax.content_types || []);
+
+        // 7. Fetch support tickets
+        const { data: dbTickets } = await supabase
+          .from('contact_tickets')
+          .select('*')
+          .order('created_at', { ascending: false });
+        setTickets(dbTickets || []);
       }
       else if (userRole === 'school_admin') {
         // Load School Admin local data
@@ -896,6 +908,7 @@ export default function AdminConsole() {
                 { id: 'notes', label: 'Interactive Lectures', icon: <BookOpen className="w-4 h-4" /> },
                 { id: 'plans', label: 'Subscription Plans', icon: <DollarSign className="w-4 h-4" /> },
                 { id: 'coupons', label: 'Coupon Codes', icon: <Tag className="w-4 h-4" /> },
+                { id: 'tickets', label: 'Support Tickets', icon: <FileText className="w-4 h-4" /> },
                 { id: 'settings', label: 'System Configs', icon: <Settings className="w-4 h-4" /> },
                 { id: 'taxonomy', label: 'Taxonomy Data', icon: <Layers className="w-4 h-4" /> }
               ].map((menuItem) => (
@@ -2870,6 +2883,136 @@ export default function AdminConsole() {
           )}
 
         </div>
+
+          {/* TAB: SUPPORT TICKETS (Super Admin Only) */}
+          {role === 'super_admin' && activeTab === 'tickets' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 font-display">Support Tickets</h3>
+                    <p className="text-slate-500 text-xs mt-0.5">Messages submitted via the contact form.</p>
+                  </div>
+                  {/* Status filter pills */}
+                  <div className="flex flex-wrap gap-2">
+                    {(['all', 'open', 'in_progress', 'resolved'] as const).map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setTicketFilter(f)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                          ticketFilter === f
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
+                        }`}
+                      >
+                        {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {tickets.filter(t => ticketFilter === 'all' || t.status === ticketFilter).length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
+                  <FileText className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 text-sm font-semibold">No tickets found.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tickets
+                    .filter(t => ticketFilter === 'all' || t.status === ticketFilter)
+                    .map((ticket) => (
+                      <div key={ticket.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">{ticket.ticket_ref}</span>
+                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
+                                ticket.status === 'open'
+                                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                  : ticket.status === 'in_progress'
+                                  ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                              }`}>
+                                {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                {new Date(ticket.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="font-bold text-slate-900 text-sm">{ticket.subject}</p>
+                            <p className="text-xs text-slate-500 font-semibold">{ticket.name} &bull; {ticket.email}</p>
+                            <p className="text-sm text-slate-600 leading-relaxed mt-2 line-clamp-3">{ticket.message}</p>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex flex-col gap-2 shrink-0">
+                            {ticket.status !== 'in_progress' && (
+                              <button
+                                type="button"
+                                disabled={ticketUpdating === ticket.id}
+                                onClick={async () => {
+                                  setTicketUpdating(ticket.id);
+                                  await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: 'in_progress' }),
+                                  });
+                                  setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'in_progress' } : t));
+                                  setTicketUpdating(null);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                Mark In Progress
+                              </button>
+                            )}
+                            {ticket.status !== 'resolved' && (
+                              <button
+                                type="button"
+                                disabled={ticketUpdating === ticket.id}
+                                onClick={async () => {
+                                  setTicketUpdating(ticket.id);
+                                  await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: 'resolved' }),
+                                  });
+                                  setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'resolved', resolved_at: new Date().toISOString() } : t));
+                                  setTicketUpdating(null);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                {ticketUpdating === ticket.id ? 'Saving...' : 'Mark Resolved'}
+                              </button>
+                            )}
+                            {ticket.status === 'resolved' && (
+                              <button
+                                type="button"
+                                disabled={ticketUpdating === ticket.id}
+                                onClick={async () => {
+                                  setTicketUpdating(ticket.id);
+                                  await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: 'open' }),
+                                  });
+                                  setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'open', resolved_at: null } : t));
+                                  setTicketUpdating(null);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                Reopen
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Footer */}
         <footer className="w-full text-center text-xs text-slate-400 mt-16 pt-4 border-t border-slate-200/50">
