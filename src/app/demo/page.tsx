@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/server';
-import { Sparkles, ArrowRight, ArrowLeft, BookOpen, Calculator, Atom, BookMarked, Layers } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, BookOpen } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SceneBackdrop from '@/components/three/SceneBackdrop';
@@ -14,16 +14,6 @@ export const metadata: Metadata = {
   title: 'Explore Interactive K-12 Experience Zone | Keeelai',
   description: 'Try our free virtual simulations and interactive experience zones across Maths, Science, Languages, and Humanities. Learn by doing with hands-on controls.',
 };
-
-interface SubjectGroup {
-  id: string;
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  colorClass: string;
-  badgeBg: string;
-  notes: any[];
-}
 
 export default async function ExperienceZonePage() {
   let demoNotes: any[] = [];
@@ -50,70 +40,7 @@ export default async function ExperienceZonePage() {
     errorMsg = 'Could not load experience zone modules. Please try again later.';
   }
 
-  // Categorize notes into subject sections
-  const mathsNotes: any[] = [];
-  const scienceNotes: any[] = [];
-  const humanitiesNotes: any[] = [];
-  const generalNotes: any[] = [];
 
-  demoNotes.forEach((note) => {
-    const taxonomySubjects = (note.note_taxonomy || [])
-      .map((t: any) => t.subjects?.name || '')
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-
-    const fullSearchText = `${note.title || ''} ${note.description || ''} ${taxonomySubjects}`.toLowerCase();
-
-    if (fullSearchText.includes('math') || fullSearchText.includes('algebra') || fullSearchText.includes('geometry') || fullSearchText.includes('calculus') || fullSearchText.includes('trig') || fullSearchText.includes('number') || fullSearchText.includes('fraction')) {
-      mathsNotes.push(note);
-    } else if (fullSearchText.includes('scienc') || fullSearchText.includes('physic') || fullSearchText.includes('chemis') || fullSearchText.includes('biol') || fullSearchText.includes('atom') || fullSearchText.includes('cell') || fullSearchText.includes('space') || fullSearchText.includes('gravity')) {
-      scienceNotes.push(note);
-    } else if (fullSearchText.includes('english') || fullSearchText.includes('histor') || fullSearchText.includes('geograph') || fullSearchText.includes('social') || fullSearchText.includes('grammar') || fullSearchText.includes('civic') || fullSearchText.includes('language')) {
-      humanitiesNotes.push(note);
-    } else {
-      generalNotes.push(note);
-    }
-  });
-
-  const subjectGroups: SubjectGroup[] = [
-    {
-      id: 'maths',
-      title: 'Experience Maths',
-      subtitle: 'Hands-on geometry, algebra, and numerical visualizers that bring mathematical principles to life.',
-      icon: <Calculator className="w-5 h-5 text-blue-600" />,
-      colorClass: 'from-blue-600 to-indigo-600',
-      badgeBg: 'bg-blue-50 border-blue-200 text-blue-700',
-      notes: mathsNotes,
-    },
-    {
-      id: 'science',
-      title: 'Experience Science',
-      subtitle: 'Interactive physics laboratories, chemical reactions, and biological anatomy models in 3D.',
-      icon: <Atom className="w-5 h-5 text-emerald-600" />,
-      colorClass: 'from-emerald-600 to-teal-600',
-      badgeBg: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-      notes: scienceNotes,
-    },
-    {
-      id: 'humanities',
-      title: 'Experience Languages & Humanities',
-      subtitle: 'Exploratory world maps, historical timelines, and interactive grammar diagrams.',
-      icon: <BookMarked className="w-5 h-5 text-purple-600" />,
-      colorClass: 'from-purple-600 to-pink-600',
-      badgeBg: 'bg-purple-50 border-purple-200 text-purple-700',
-      notes: humanitiesNotes,
-    },
-    {
-      id: 'general',
-      title: 'General Experience Zone',
-      subtitle: 'Cross-curricular interactive modules and essential foundational visualizers.',
-      icon: <Layers className="w-5 h-5 text-amber-600" />,
-      colorClass: 'from-amber-600 to-orange-600',
-      badgeBg: 'bg-amber-50 border-amber-200 text-amber-700',
-      notes: generalNotes,
-    },
-  ].filter(group => group.notes.length > 0 || (demoNotes.length === 0 && group.id === 'maths'));
 
   return (
     <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
@@ -202,76 +129,61 @@ export default async function ExperienceZonePage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-16">
-            {subjectGroups.map((group) => (
-              <section key={group.id} className="space-y-6">
-                {/* Subject Group Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-2xl border ${group.badgeBg} flex items-center justify-center`}>
-                      {group.icon}
+          <Reveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {demoNotes.map((note: any) => {
+              // Read subject name directly from DB taxonomy — no keyword guessing
+              const subjectName: string = (note.note_taxonomy || [])
+                .map((t: any) => t.subjects?.name)
+                .filter(Boolean)[0] ?? '';
+
+              const buttonLabel = subjectName
+                ? `Experience ${subjectName}`
+                : 'Experience Future';
+              const colorClass = 'from-blue-600 to-indigo-600';
+
+              return (
+                <div
+                  key={note.id}
+                  className="bg-white/85 backdrop-blur-sm border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-candy-blue/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-candy-blue/10 transition-all duration-300 group relative overflow-hidden"
+                >
+                  {/* Glowing bottom gradient on hover */}
+                  <div className={`absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r ${colorClass} transform translate-y-full group-hover:translate-y-0 transition-transform duration-300`} />
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Interactive Simulation
+                      </span>
+                      <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">
+                        Free Experience
+                      </span>
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight font-display">
-                        {group.title}
-                      </h2>
-                      <p className="text-slate-500 text-xs font-semibold mt-0.5">
-                        {group.subtitle}
-                      </p>
-                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-display line-clamp-2">
+                      {note.title}
+                    </h3>
+
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-4 min-h-[80px] font-medium">
+                      {note.description || 'Explore virtual simulations and hands-on experiments. Adjust variables to see concepts react in real-time.'}
+                    </p>
                   </div>
-                  <span className="text-xs font-bold text-slate-400 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full uppercase tracking-wider self-start sm:self-auto">
-                    {group.notes.length} {group.notes.length === 1 ? 'Module' : 'Modules'}
-                  </span>
-                </div>
 
-                {/* Cards Grid */}
-                <Reveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {group.notes.map((note: any) => (
-                    <div
-                      key={note.id}
-                      className="bg-white/85 backdrop-blur-sm border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-candy-blue/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-candy-blue/10 transition-all duration-300 group relative overflow-hidden"
+                  <div className="pt-6 border-t border-slate-100 mt-8 flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Public Access</span>
+                    <a
+                      href={`/webview/notes/${note.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
                     >
-                      {/* Glowing bottom gradient on hover */}
-                      <div className={`absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r ${group.colorClass} transform translate-y-full group-hover:translate-y-0 transition-transform duration-300`} />
-
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            Interactive Simulation
-                          </span>
-                          <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">
-                            Free Experience
-                          </span>
-                        </div>
-
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-display line-clamp-2">
-                          {note.title}
-                        </h3>
-
-                        <p className="text-slate-600 text-sm leading-relaxed line-clamp-4 min-h-[80px] font-medium">
-                          {note.description || 'Explore virtual simulations and hands-on experiments. Adjust variables to see science and math concepts react in real-time.'}
-                        </p>
-                      </div>
-
-                      <div className="pt-6 border-t border-slate-100 mt-8 flex items-center justify-between">
-                        <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Public Access</span>
-                        <a
-                          href={`/webview/notes/${note.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
-                        >
-                          <span>Launch Webview</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </Reveal>
-              </section>
-            ))}
-          </div>
+                      <span>{buttonLabel}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </Reveal>
         )}
 
       </main>
