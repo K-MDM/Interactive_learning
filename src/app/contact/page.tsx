@@ -53,7 +53,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
-      <SceneBackdrop density={9} veil={0.22} />
+      <SceneBackdrop density={6} veil={0.35} />
       <Navbar dark={false} />
 
       <script
@@ -87,75 +87,85 @@ export default function ContactPage() {
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative z-10">
 
         {/* Contact Info column */}
-        <Reveal from="left" className="lg:col-span-5 space-y-8 lg:pr-8">
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 font-display">
-              Get in <span className="text-gradient-fun">touch</span>
-            </h1>
-            <p className="text-slate-600 leading-relaxed text-base font-semibold">
-              Have questions about subscription activation, custom team licenses, or experiencing technical rendering issues inside the mobile app? Drop us a line.
-            </p>
-          </div>
+        <Reveal from="left" className="lg:col-span-5 relative z-20">
+          <div className="bg-white/85 backdrop-blur-md border border-slate-200/90 rounded-3xl p-8 shadow-xl space-y-8 relative overflow-hidden">
+            {/* Top decorative gradient bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
 
-          <div className="space-y-6 pt-6 border-t border-slate-205 border-slate-200">
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-650 shrink-0">
-                <Mail className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Us</h3>
-                <p className="text-sm font-bold text-slate-900 mt-1">support@keeelai.com</p>
-                <p className="text-xs text-slate-500 mt-0.5 font-semibold">Average response time: &lt; 2 hours</p>
-              </div>
+            <div className="space-y-3">
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 font-display">
+                Get in <span className="text-gradient-fun">touch</span>
+              </h1>
+              <p className="text-slate-600 leading-relaxed text-sm font-medium">
+                Have questions about subscription activation, custom team licenses, or experiencing technical rendering issues inside the mobile app? Drop us a line.
+              </p>
             </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-650 shrink-0">
-                <Clock className="w-5 h-5" />
+            <div className="space-y-6 pt-6 border-t border-slate-100">
+              <div className="flex gap-4 items-start">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-xs">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Us</h3>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">support@keeelai.com</p>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">Average response time: &lt; 2 hours</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Business Hours</h3>
-                <p className="text-sm font-bold text-slate-900 mt-1">Monday – Friday</p>
-                <p className="text-xs text-slate-500 mt-0.5 font-semibold">9:00 AM – 6:00 PM EST</p>
-              </div>
-            </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-650 shrink-0">
-                <MapPin className="w-5 h-5" />
+              <div className="flex gap-4 items-start">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Business Hours</h3>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">Monday – Friday</p>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">9:00 AM – 6:00 PM EST</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Headquarters</h3>
-                <p className="text-sm font-bold text-slate-900 mt-1">Keeel Pvt. Ltd.</p>
-                <p className="text-xs text-slate-500 mt-0.5 font-semibold">Maharashtra, India</p>
+
+              <div className="flex gap-4 items-start">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-xs">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Headquarters</h3>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">Keeel Pvt. Ltd.</p>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">Maharashtra, India</p>
+                </div>
               </div>
             </div>
           </div>
         </Reveal>
 
         {/* Contact Form Card */}
-        <Reveal from="right" className="lg:col-span-7 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xl relative">
+        <Reveal from="right" className="lg:col-span-7 bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-3xl p-6 md:p-8 shadow-xl relative z-20">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-candy-blue via-candy-indigo to-candy-coral rounded-t-3xl" />
 
           {submitted ? (
-            <div className="text-center py-12 space-y-4">
-              <div className="mx-auto w-14 h-14 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8" />
+            <div className="text-center py-10 space-y-6 flex flex-col items-center">
+              <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
+                <CheckCircle className="w-9 h-9" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 font-display">Message Sent!</h2>
-              <p className="text-slate-600 text-sm max-w-sm mx-auto leading-relaxed font-semibold">
-                Thank you for reaching out. Our support team will respond within 2 hours.
-              </p>
+
+              <div className="space-y-2">
+                <h2 className="text-3xl font-extrabold text-slate-900 font-display">Message Sent!</h2>
+                <p className="text-slate-600 text-sm max-w-md mx-auto leading-relaxed font-medium">
+                  Thank you for reaching out. Our operations support team has received your ticket and will respond within 2 hours.
+                </p>
+              </div>
+
               {ticketRef && (
-                <div className="inline-flex flex-col items-center gap-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Your Ticket Reference</span>
-                  <span className="text-xl font-black text-slate-900 font-display tracking-wide">{ticketRef}</span>
-                  <span className="text-[10px] text-slate-500 font-semibold">Save this ID to track your request</span>
+                <div className="w-full max-w-sm bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col items-center gap-2 shadow-xs">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Your Ticket Reference ID</span>
+                  <span className="text-2xl font-black text-blue-600 font-mono tracking-widest bg-white border border-blue-100 px-5 py-2 rounded-xl shadow-xs">{ticketRef}</span>
+                  <span className="text-[11px] text-slate-500 font-medium mt-1">Please keep this ID for your records</span>
                 </div>
               )}
+
               <button
                 onClick={() => { setSubmitted(false); setTicketRef(''); }}
-                className="mt-6 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+                className="mt-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-6 py-3 rounded-xl shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 Send Another Message
               </button>

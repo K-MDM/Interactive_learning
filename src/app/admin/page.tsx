@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import {
   ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader,
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
-  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers
+  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers, Mail, Send
 } from 'lucide-react';
 import LicenceManager from './LicenceManager';
 
@@ -110,6 +110,9 @@ export default function AdminConsole() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [ticketFilter, setTicketFilter] = useState<'all' | 'open' | 'in_progress' | 'resolved'>('all');
   const [ticketUpdating, setTicketUpdating] = useState<string | null>(null);
+  const [replyingTicketId, setReplyingTicketId] = useState<string | null>(null);
+  const [replyMessageText, setReplyMessageText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   // New Coupon Form States
   const [newCouponCode, setNewCouponCode] = useState('');
@@ -219,11 +222,9 @@ export default function AdminConsole() {
         setContentTypes(dataTax.content_types || []);
 
         // 7. Fetch support tickets
-        const { data: dbTickets } = await supabase
-          .from('contact_tickets')
-          .select('*')
-          .order('created_at', { ascending: false });
-        setTickets(dbTickets || []);
+        const resTickets = await fetch('/api/admin/tickets');
+        const dataTickets = await resTickets.json();
+        setTickets(dataTickets.tickets || []);
       }
       else if (userRole === 'school_admin') {
         // Load School Admin local data
@@ -2944,10 +2945,35 @@ export default function AdminConsole() {
                             <p className="font-bold text-slate-900 text-sm">{ticket.subject}</p>
                             <p className="text-xs text-slate-500 font-semibold">{ticket.name} &bull; {ticket.email}</p>
                             <p className="text-sm text-slate-600 leading-relaxed mt-2 line-clamp-3">{ticket.message}</p>
+
+                            {/* Show previous admin reply if present */}
+                            {ticket.admin_notes && (
+                              <div className="mt-3 bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs space-y-1">
+                                <span className="font-bold text-blue-700 uppercase tracking-wider text-[10px]">Admin Reply Sent</span>
+                                <p className="text-slate-700 leading-relaxed">{ticket.admin_notes}</p>
+                              </div>
+                            )}
                           </div>
 
                           {/* Actions */}
-                          <div className="flex flex-col gap-2 shrink-0">
+                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (replyingTicketId === ticket.id) {
+                                  setReplyingTicketId(null);
+                                  setReplyMessageText('');
+                                } else {
+                                  setReplyingTicketId(ticket.id);
+                                  setReplyMessageText('');
+                                }
+                              }}
+                              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                              <span>{replyingTicketId === ticket.id ? 'Cancel Reply' : 'Reply via Email'}</span>
+                            </button>
+
                             {ticket.status !== 'in_progress' && (
                               <button
                                 type="button"
@@ -3007,6 +3033,63 @@ export default function AdminConsole() {
                             )}
                           </div>
                         </div>
+
+                        {/* Expandable Reply Form */}
+                        {replyingTicketId === ticket.id && (
+                          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 bg-slate-50/50 p-4 rounded-xl">
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-bold text-slate-700">Reply to <span className="text-blue-600 font-semibold">{ticket.email}</span></span>
+                              <span className="text-[10px] text-slate-400 font-mono">Ref: {ticket.ticket_ref}</span>
+                            </div>
+                            <textarea
+                              rows={3}
+                              value={replyMessageText}
+                              onChange={(e) => setReplyMessageText(e.target.value)}
+                              placeholder={`Type your response to ${ticket.name}...`}
+                              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => { setReplyingTicketId(null); setReplyMessageText(''); }}
+                                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isSendingReply || !replyMessageText.trim()}
+                                onClick={async () => {
+                                  if (!replyMessageText.trim()) return;
+                                  setIsSendingReply(true);
+                                  try {
+                                    const res = await fetch(`/api/admin/tickets/${ticket.id}/reply`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ replyMessage: replyMessageText }),
+                                    });
+                                    if (res.ok) {
+                                      setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, admin_notes: replyMessageText, status: 'resolved' } : t));
+                                      setReplyingTicketId(null);
+                                      setReplyMessageText('');
+                                      setMessage({ type: 'success', text: `Email reply sent to ${ticket.email} and marked resolved!` });
+                                    } else {
+                                      setMessage({ type: 'error', text: 'Failed to send email reply.' });
+                                    }
+                                  } catch {
+                                    setMessage({ type: 'error', text: 'Failed to send email reply.' });
+                                  } finally {
+                                    setIsSendingReply(false);
+                                  }
+                                }}
+                                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                              >
+                                {isSendingReply ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                <span>Send Email &amp; Mark Resolved</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                 </div>

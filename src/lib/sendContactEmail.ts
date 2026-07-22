@@ -1,9 +1,6 @@
 /**
- * Email helper for contact/support ticket notifications.
+ * Email helper for contact/support ticket notifications and admin replies.
  * Reuses the same Supabase Edge Function pattern as sendLicenceEmail.
- * Sends two emails:
- *  1. To support@keeelai.com — new ticket notification
- *  2. To the submitter — ticket confirmation with reference
  */
 
 const SUPPORT_EMAIL = 'support@keeelai.com';
@@ -14,6 +11,14 @@ export interface SendContactEmailParams {
   subject: string;
   message: string;
   ticketRef: string;
+}
+
+export interface SendAdminReplyParams {
+  toEmail: string;
+  userName: string;
+  ticketRef: string;
+  replyMessage: string;
+  ticketSubject: string;
 }
 
 async function callEdgeFunction(payload: Record<string, string>): Promise<boolean> {
@@ -70,4 +75,21 @@ export async function sendContactEmail({
   });
 
   return supportOk && userOk;
+}
+
+export async function sendAdminReplyEmail({
+  toEmail,
+  userName,
+  ticketRef,
+  replyMessage,
+  ticketSubject,
+}: SendAdminReplyParams): Promise<boolean> {
+  return await callEdgeFunction({
+    to: toEmail,
+    subject: `Re: [${ticketRef}] ${ticketSubject}`,
+    ticket_ref: ticketRef,
+    user_name: userName,
+    message_body: replyMessage,
+    email_type: 'contact_admin_reply',
+  });
 }
