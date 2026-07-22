@@ -32,7 +32,7 @@
 
 #   interactive_learning:
 #     build:
-#       context: .
+#       context: ./Interactive_learning
 #       dockerfile: dockerfile
 #       args:
 #         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
@@ -47,7 +47,7 @@
 #     container_name: interactive_learning
 #     restart: unless-stopped
 #     env_file:
-#       - .env
+#       - /root/keeel/Interactive_learning/.env
 #     ports:
 #       - "3001:3000"
 #     environment:
@@ -56,15 +56,7 @@
 #       VIRTUAL_HOST: keeelai.com,www.keeelai.com
 #       LETSENCRYPT_HOST: keeelai.com,www.keeelai.com
 #       LETSENCRYPT_EMAIL: amarkounsal@gmail.com
-#       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
-#       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
-#       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-#       SUPABASE_EDGE_EMAIL_URL: ${SUPABASE_EDGE_EMAIL_URL:-}
-#       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-#       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
-#       NEXT_PUBLIC_RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-#       OLD_APP_SHARED_SECRET: ${OLD_APP_SHARED_SECRET:-}
-#       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://keeelai.com}
+#       NEXT_PUBLIC_RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
 #     networks:
 #       - app-net
 

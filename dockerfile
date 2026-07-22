@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG NODE_VERSION=20-alpine
+ARG NODE_VERSION=22-alpine
 
 # ============================================
 # Stage 1: Base image
@@ -13,7 +13,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Stage 2: Dependencies
 # ============================================
 FROM base AS dependencies
-RUN apk add --no-libc6-compat libc6-compat
+RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
 
 RUN --mount=type=cache,target=/root/.npm \
