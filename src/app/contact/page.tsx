@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Send, CheckCircle, Mail, MapPin, Clock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import SceneBackdrop from '@/components/three/SceneBackdrop';
+import Reveal from '@/components/motion/Reveal';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -29,7 +31,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
+    <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
+      <SceneBackdrop density={8} veil={0.44} />
       <Navbar dark={false} />
 
       <script
@@ -63,10 +66,10 @@ export default function ContactPage() {
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-32 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative z-10">
 
         {/* Contact Info column */}
-        <div className="lg:col-span-5 space-y-8 lg:pr-8">
+        <Reveal from="left" className="lg:col-span-5 space-y-8 lg:pr-8">
           <div className="space-y-4">
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 font-display">
-              Get in touch
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 font-display">
+              Get in <span className="text-gradient-fun">touch</span>
             </h1>
             <p className="text-slate-600 leading-relaxed text-base font-semibold">
               Have questions about subscription activation, custom team licenses, or experiencing technical rendering issues inside the mobile app? Drop us a line.
@@ -107,11 +110,11 @@ export default function ContactPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* Contact Form Card */}
-        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-md relative">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-t-3xl" />
+        <Reveal from="right" className="lg:col-span-7 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xl relative">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-candy-blue via-candy-indigo to-candy-coral rounded-t-3xl" />
 
           {submitted ? (
             <div className="text-center py-12 space-y-4">
@@ -143,7 +146,7 @@ export default function ContactPage() {
                     placeholder="John Doe"
                     required
                     disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-candy-blue focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -155,7 +158,7 @@ export default function ContactPage() {
                     placeholder="john@example.com"
                     required
                     disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-candy-blue focus:bg-white transition-colors"
                   />
                 </div>
               </div>
@@ -169,7 +172,7 @@ export default function ContactPage() {
                   placeholder="How can we help you?"
                   required
                   disabled={loading}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-candy-blue focus:bg-white transition-colors"
                 />
               </div>
 
@@ -182,14 +185,14 @@ export default function ContactPage() {
                   required
                   disabled={loading}
                   rows={5}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-candy-blue focus:bg-white transition-colors resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full bg-candy-blue hover:brightness-110 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-candy-blue/25 transition-all active:scale-[0.98] cursor-pointer"
               >
                 {loading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -203,7 +206,7 @@ export default function ContactPage() {
             </form>
           )}
 
-        </div>
+        </Reveal>
       </main>
       <Footer />
 

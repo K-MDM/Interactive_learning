@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { Sparkles, ArrowRight, ArrowLeft, BookOpen, Calculator, Atom, BookMarked, Layers } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import SceneBackdrop from '@/components/three/SceneBackdrop';
+import Reveal from '@/components/motion/Reveal';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,7 +116,8 @@ export default async function ExperienceZonePage() {
   ].filter(group => group.notes.length > 0 || (demoNotes.length === 0 && group.id === 'maths'));
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
+    <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
+      <SceneBackdrop density={9} veil={0.42} />
       <Navbar dark={false} />
 
       <script
@@ -159,21 +162,21 @@ export default async function ExperienceZonePage() {
         </div>
 
         {/* Hero Section */}
-        <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 animate-pulse text-blue-600" />
+        <Reveal from="up" className="text-center space-y-4 max-w-2xl mx-auto">
+          <div className="inline-flex items-center space-x-2 bg-white/70 backdrop-blur border border-candy-blue/25 text-candy-blue px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 animate-pulse" />
             <span>K-12 Experience Zone</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight font-display leading-[1.15]">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight font-display leading-[1.1]">
             Explore the{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="text-gradient-fun">
               Interactive Experience Zone
             </span>
           </h1>
           <p className="text-slate-600 text-base leading-relaxed font-semibold">
             Try our hands-on subject experience hubs directly in your browser. Touch, adjust variables, and see abstract K-12 concepts react in real-time.
           </p>
-        </div>
+        </Reveal>
 
         {/* Content list */}
         {errorMsg ? (
@@ -223,11 +226,11 @@ export default async function ExperienceZonePage() {
                 </div>
 
                 {/* Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <Reveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {group.notes.map((note: any) => (
                     <div
                       key={note.id}
-                      className="bg-white border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/[0.02] transition-all duration-300 group relative overflow-hidden"
+                      className="bg-white/85 backdrop-blur-sm border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-candy-blue/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-candy-blue/10 transition-all duration-300 group relative overflow-hidden"
                     >
                       {/* Glowing bottom gradient on hover */}
                       <div className={`absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r ${group.colorClass} transform translate-y-full group-hover:translate-y-0 transition-transform duration-300`} />
@@ -265,7 +268,7 @@ export default async function ExperienceZonePage() {
                       </div>
                     </div>
                   ))}
-                </div>
+                </Reveal>
               </section>
             ))}
           </div>

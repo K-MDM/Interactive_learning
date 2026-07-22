@@ -132,7 +132,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
             className="flex items-center space-x-2.5 hover:opacity-90 transition-opacity"
           >
             {/* <Logo className="text-[#0F172A]" /> */}
-            <span className="font-extrabold tracking-wider font-display text-sm text-[#0F172A] uppercase">
+            <span className="font-extrabold tracking-wider font-display text-sm text-gradient-fun uppercase">
               KEEEL AI
             </span>
           </Link>
@@ -149,7 +149,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                     className={cn(
                       "block duration-150 transition-colors",
                       isActive
-                        ? "text-[#0F172A] font-extrabold border-b-2 border-emerald-500 pb-0.5"
+                        ? "text-[#0F172A] font-extrabold border-b-2 border-candy-indigo pb-0.5"
                         : "text-slate-600 hover:text-[#0F172A]"
                     )}
                   >
@@ -238,7 +238,7 @@ export default function Navbar({ rightSlot, dark = false }: NavbarProps) {
                 <Button asChild variant="ghost" size="sm" className="h-9 px-4 text-xs font-bold text-slate-700 hover:text-[#0F172A] rounded-full border border-slate-200">
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button asChild size="sm" className="h-9 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all">
+                <Button asChild size="sm" className="h-9 px-4 text-xs font-bold bg-candy-blue hover:brightness-110 text-white rounded-full transition-all shadow-sm shadow-candy-blue/30">
                   <Link href="/checkout">Sign Up</Link>
                 </Button>
               </div>
