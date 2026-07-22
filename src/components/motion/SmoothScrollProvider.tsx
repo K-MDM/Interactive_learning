@@ -16,12 +16,50 @@ export function useLenis() {
   return useContext(LenisContext);
 }
 
+/**
+ * Recomputes ScrollTrigger's cached trigger positions once the page's
+ * initial layout has actually settled — specifically when web fonts swap in
+ * and on window `load` (late images / chunks). Without this, ScrollTrigger
+ * measures positions early; if a bold display font swaps in a beat later,
+ * everything below it reflows and those cached positions go stale, so
+ * elements below the fold never reveal until a hard refresh.
+ *
+ * NOTE: intentionally a small set of one-off refreshes — NOT a
+ * ResizeObserver on <body>, because refresh() itself can nudge layout and
+ * create a feedback loop that constantly resets scrub animations (killing
+ * the parallax / scroll motion). ScrollTrigger already auto-refreshes on
+ * window resize on its own.
+ */
+function useScrollTriggerRefresh() {
+  useEffect(() => {
+    const timers: number[] = [];
+    const refresh = () => ScrollTrigger.refresh();
+
+    // A couple of staggered passes cover most first-paint reflow timing.
+    timers.push(window.setTimeout(refresh, 250));
+    timers.push(window.setTimeout(refresh, 800));
+
+    if (document.readyState !== 'complete') {
+      window.addEventListener('load', refresh);
+    }
+
+    document.fonts?.ready?.then(refresh).catch(() => {});
+
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      window.removeEventListener('load', refresh);
+    };
+  }, []);
+}
+
 export default function SmoothScrollProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const lenisRef = useRef<Lenis | null>(null);
+
+  useScrollTriggerRefresh();
 
   useEffect(() => {
     const prefersReduced = window.matchMedia(
@@ -30,7 +68,6 @@ export default function SmoothScrollProvider({
 
     // For users who prefer reduced motion, skip smoothing entirely.
     if (prefersReduced) {
-      ScrollTrigger.refresh();
       return;
     }
 
@@ -49,11 +86,7 @@ export default function SmoothScrollProvider({
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
 
-    // Recalculate trigger positions once fonts/images settle.
-    const refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 300);
-
     return () => {
-      window.clearTimeout(refreshTimer);
       gsap.ticker.remove(raf);
       lenis.destroy();
       lenisRef.current = null;

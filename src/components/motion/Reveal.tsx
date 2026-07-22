@@ -2,12 +2,7 @@
 
 import React, { useRef } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useIsomorphicLayoutEffect } from './useIsomorphicLayoutEffect';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 type Direction = 'up' | 'down' | 'left' | 'right' | 'scale';
 
@@ -33,6 +28,11 @@ const offsets: Record<Direction, (d: number) => gsap.TweenVars> = {
   scale: () => ({ scale: 0.85, opacity: 0 }),
 };
 
+/**
+ * Scroll-in reveal driven by IntersectionObserver (NOT ScrollTrigger), so it
+ * reports real on-screen visibility and can never get stuck hidden when a
+ * late font swap / image reflows the page and staled cached positions.
+ */
 export default function Reveal({
   children,
   className,
@@ -49,33 +49,64 @@ export default function Reveal({
     const el = ref.current;
     if (!el) return;
 
+    const targets: gsap.TweenTarget = stagger
+      ? (Array.from(el.children) as HTMLElement[])
+      : el;
+
     const prefersReduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)'
     ).matches;
     if (prefersReduced) {
-      gsap.set(stagger ? el.children : el, { opacity: 1, x: 0, y: 0, scale: 1 });
+      gsap.set(targets, { opacity: 1, x: 0, y: 0, scale: 1 });
       return;
     }
 
-    const targets = stagger ? (Array.from(el.children) as HTMLElement[]) : el;
+    // Hidden start state.
+    gsap.set(targets, offsets[from](distance));
 
-    const ctx = gsap.context(() => {
-      gsap.from(targets, {
-        ...offsets[from](distance),
+    let played = false;
+    let tween: gsap.core.Tween | undefined;
+    const play = () => {
+      if (played) return;
+      played = true;
+      tween = gsap.to(targets, {
+        opacity: 1,
+        x: 0,
+        y: 0,
+        scale: 1,
         duration: 0.9,
         delay,
         ease: 'power3.out',
         stagger: stagger ? 0.12 : 0,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 92%',
-          toggleActions: 'play none none none',
-          once: true,
-        },
       });
-    }, el);
+    };
 
-    return () => ctx.revert();
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          play();
+          io.disconnect();
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.01 }
+    );
+    io.observe(el);
+
+    // Safety net: if the element is already within the viewport on mount
+    // (e.g. above the fold) reveal it even if the observer is slow to fire.
+    const safety = window.setTimeout(() => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) {
+        play();
+        io.disconnect();
+      }
+    }, 500);
+
+    return () => {
+      io.disconnect();
+      window.clearTimeout(safety);
+      tween?.kill();
+    };
   }, [from, stagger, delay, distance]);
 
   return (
