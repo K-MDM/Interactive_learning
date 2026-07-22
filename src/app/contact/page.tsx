@@ -32,7 +32,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
-      <SceneBackdrop density={8} veil={0.44} />
+      <SceneBackdrop density={9} veil={0.22} />
       <Navbar dark={false} />
 
       <script

@@ -4,16 +4,17 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Sparkles } from 'lucide-react';
 import Reveal from '@/components/motion/Reveal';
+import Parallax from '@/components/motion/Parallax';
 
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden min-h-[86dvh] flex flex-col justify-center">
-      {/* Playful floating accent blobs (decorative, over the 3D backdrop) */}
-      <div className="pointer-events-none absolute inset-0 -z-[1]">
+      {/* Playful floating accent blobs (parallax over the 3D backdrop) */}
+      <Parallax speed={140} className="pointer-events-none absolute inset-0 -z-[1]">
         <div className="absolute left-[6%] top-[22%] h-24 w-24 rounded-full bg-candy-yellow/30 blur-2xl animate-float-slow" />
         <div className="absolute right-[10%] top-[28%] h-32 w-32 rounded-full bg-candy-coral/25 blur-2xl animate-float" />
         <div className="absolute left-[18%] bottom-[16%] h-28 w-28 rounded-full bg-candy-teal/25 blur-2xl animate-float-slow" />
-      </div>
+      </Parallax>
 
       <div className="py-20 md:pb-24 lg:pb-28 lg:pt-40">
         <div className="relative z-10 mx-auto flex max-w-5xl flex-col px-6 text-center">

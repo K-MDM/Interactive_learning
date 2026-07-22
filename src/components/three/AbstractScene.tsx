@@ -105,8 +105,14 @@ export default function AbstractScene({
     scene.add(group);
 
     const count = prefersReduced ? Math.min(6, density) : isMobile ? Math.round(density * 0.55) : density;
-    const shapes: { mesh: THREE.Mesh; speed: number; phase: number; spin: THREE.Vector3 }[] =
-      [];
+    const shapes: {
+      mesh: THREE.Mesh;
+      speed: number;
+      phase: number;
+      spin: THREE.Vector3;
+      baseY: number;
+      parallax: number;
+    }[] = [];
 
     for (let i = 0; i < count; i++) {
       const geometry = makeGeometry(i);
@@ -117,25 +123,27 @@ export default function AbstractScene({
         metalness: 0.08,
         emissive: new THREE.Color(color).multiplyScalar(0.04),
         transparent: true,
-        opacity: 0.88,
+        opacity: 0.97,
         flatShading: i % 6 === 0 || i % 6 === 2,
       });
       const mesh = new THREE.Mesh(geometry, material);
 
-      // Bias shapes to the left/right edges so the central reading column
-      // stays clear. x lives in the outer bands, never the middle.
+      // Bias shapes to the left/right bands so the central reading column
+      // stays clear, but keep them prominent and immersive.
       const side = Math.random() < 0.5 ? -1 : 1;
-      const x = side * (6.5 + Math.random() * 6);
+      const x = side * (5 + Math.random() * 6.5);
       mesh.position.set(
         x,
         (Math.random() - 0.5) * 16,
-        -3 - Math.random() * 6 // pushed back for depth
+        -2 - Math.random() * 6 // depth
       );
-      const s = 0.4 + Math.random() * 0.65;
+      const s = 0.55 + Math.random() * 0.85;
       mesh.scale.setScalar(s);
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
 
       group.add(mesh);
+      // Closer (larger) shapes parallax further on scroll -> layered depth.
+      const parallax = (3 + Math.random() * 7) * (0.6 + s);
       shapes.push({
         mesh,
         speed: 0.3 + Math.random() * 0.6,
@@ -145,6 +153,8 @@ export default function AbstractScene({
           (Math.random() - 0.5) * 0.4,
           (Math.random() - 0.5) * 0.2
         ),
+        baseY: mesh.position.y,
+        parallax,
       });
     }
 
@@ -170,24 +180,33 @@ export default function AbstractScene({
     const clock = new THREE.Clock();
     let raf = 0;
     let running = true;
+    let scrollSmooth = scrollFactor; // eased scroll value for buttery motion
 
     const renderFrame = () => {
       const t = clock.getElapsedTime();
 
-      // Bob + spin each shape.
+      // Ease the raw scroll toward its target; measure velocity for extra spin.
+      const prev = scrollSmooth;
+      scrollSmooth += (scrollFactor - scrollSmooth) * 0.08;
+      const scrollVel = scrollSmooth - prev;
+
+      // Per-shape: idle bob + layered scroll parallax + spin (scroll-boosted).
       for (const item of shapes) {
-        item.mesh.position.y += Math.sin(t * item.speed + item.phase) * 0.004;
+        const bob = Math.sin(t * item.speed + item.phase) * 0.5;
+        item.mesh.position.y = item.baseY + bob - scrollSmooth * item.parallax;
         if (!prefersReduced) {
-          item.mesh.rotation.x += item.spin.x * 0.01;
-          item.mesh.rotation.y += item.spin.y * 0.01;
-          item.mesh.rotation.z += item.spin.z * 0.01;
+          const boost = 1 + Math.abs(scrollVel) * 60;
+          item.mesh.rotation.x += item.spin.x * 0.01 * boost;
+          item.mesh.rotation.y += item.spin.y * 0.01 * boost;
+          item.mesh.rotation.z += item.spin.z * 0.01 * boost;
         }
       }
 
-      // Gentle vertical parallax on scroll only — no big rotation that would
-      // sweep edge shapes across the central reading column.
+      // Immersive scroll response: dolly the camera in + a slight in-plane tilt.
+      // (No y-axis group spin, so edge shapes never cross the reading column.)
       group.rotation.y = t * 0.015;
-      group.position.y = scrollFactor * 4.5;
+      group.rotation.z = scrollSmooth * 0.18;
+      camera.position.z = 18 - scrollSmooth * 5.5;
 
       // Subtle pointer parallax on camera.
       pointer.x += (pointer.tx - pointer.x) * 0.05;

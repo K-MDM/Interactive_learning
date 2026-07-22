@@ -12,12 +12,13 @@ import InteractiveSimulator from '@/components/InteractiveSimulator';
 import { HeroSection } from '@/components/blocks/hero-section-5';
 import SceneBackdrop from '@/components/three/SceneBackdrop';
 import Reveal from '@/components/motion/Reveal';
+import Parallax from '@/components/motion/Parallax';
 
 export default function LandingPage() {
   return (
     <div className="text-[#0F172A] flex flex-col min-h-screen relative font-sans select-none antialiased">
       {/* Immersive playful 3D backdrop (fixed, behind everything) */}
-      <SceneBackdrop density={9} />
+      <SceneBackdrop density={11} />
 
       <Navbar dark={false} />
 
@@ -55,10 +56,12 @@ export default function LandingPage() {
 
         {/* Section 2: Bento Grid Features */}
         <div className="space-y-8">
-          <Reveal from="up" className="text-center space-y-2">
-            <h3 className="text-2xl md:text-3xl font-black tracking-tight font-display text-slate-900">Immersive Visual Learning</h3>
-            <p className="text-slate-500 text-sm font-semibold">Helping parents explain complex subjects and empowering teachers with interactive tools.</p>
-          </Reveal>
+          <Parallax speed={50}>
+            <Reveal from="up" className="text-center space-y-2">
+              <h3 className="text-2xl md:text-3xl font-black tracking-tight font-display text-slate-900">Immersive Visual Learning</h3>
+              <p className="text-slate-500 text-sm font-semibold">Helping parents explain complex subjects and empowering teachers with interactive tools.</p>
+            </Reveal>
+          </Parallax>
 
           <Reveal stagger className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -167,15 +170,17 @@ export default function LandingPage() {
 
         {/* Section 3: Live Interactive Simulator */}
         <div className="space-y-10">
-          <Reveal from="up" className="text-center max-w-xl mx-auto space-y-3">
-            <span className="bg-candy-blue/10 text-candy-blue text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-candy-blue/20">
-              Interactive Subject Player
-            </span>
-            <h3 className="text-3xl font-black font-display text-slate-900 tracking-tight">Play with the Simulation Player</h3>
-            <p className="text-slate-600 text-sm leading-relaxed font-semibold">
-              Test variables below to see the immersive player in action: adjust timelines, manipulate topography grids, adjust chemical heat, or diagram sentences.
-            </p>
-          </Reveal>
+          <Parallax speed={45}>
+            <Reveal from="up" className="text-center max-w-xl mx-auto space-y-3">
+              <span className="bg-candy-blue/10 text-candy-blue text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-candy-blue/20">
+                Interactive Subject Player
+              </span>
+              <h3 className="text-3xl font-black font-display text-slate-900 tracking-tight">Play with the Simulation Player</h3>
+              <p className="text-slate-600 text-sm leading-relaxed font-semibold">
+                Test variables below to see the immersive player in action: adjust timelines, manipulate topography grids, adjust chemical heat, or diagram sentences.
+              </p>
+            </Reveal>
+          </Parallax>
 
           <Reveal from="scale" className="border border-slate-200/80 rounded-[2.5rem] overflow-hidden bg-slate-950 shadow-2xl shadow-slate-900/20">
             <InteractiveSimulator />

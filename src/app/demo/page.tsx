@@ -117,7 +117,7 @@ export default async function ExperienceZonePage() {
 
   return (
     <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
-      <SceneBackdrop density={9} veil={0.42} />
+      <SceneBackdrop density={10} veil={0.2} />
       <Navbar dark={false} />
 
       <script
