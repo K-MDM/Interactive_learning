@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
  * POST /api/flutter/activate
  *
  * Body:
- *   licence_key  string  Key in format KEEL-XXXX-XXXX (or raw 12 chars)
+ *   licence_key  string  Key in format KEEEL-XXXX-XXXX (or raw 12 chars)
  *   device_id    string  Unique device hardware identifier
  */
 export async function POST(request: Request) {
@@ -30,9 +30,9 @@ export async function POST(request: Request) {
 
     // Normalize licence key
     let normalizedKey = licence_key.trim().toUpperCase().replace(/\s+/g, '');
-    // Insert hyphens if user typed without hyphens (e.g. KEELA3X7BN9K)
-    if (!normalizedKey.includes('-') && normalizedKey.length === 12 && normalizedKey.startsWith('KEEL')) {
-      normalizedKey = `KEEL-${normalizedKey.substring(4, 8)}-${normalizedKey.substring(8, 12)}`;
+    // Insert hyphens if user typed without hyphens (e.g. KEEELA3X7BN9K)
+    if (!normalizedKey.includes('-') && normalizedKey.length === 12 && normalizedKey.startsWith('KEEEL')) {
+      normalizedKey = `KEEEL-${normalizedKey.substring(4, 8)}-${normalizedKey.substring(8, 12)}`;
     }
 
     const adminClient = createAdminClient();
