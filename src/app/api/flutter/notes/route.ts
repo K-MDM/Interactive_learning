@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       query = query.or(`class_id.eq.${classId},class_id.is.null`, { foreignTable: 'note_taxonomy' });
     }
     if (subjectId) {
-      query = query.or(`subject_id.eq.${subjectId},subject_id.is.null`, { foreignTable: 'note_taxonomy' });
+      query = query.eq('note_taxonomy.subject_id', subjectId);
     }
     if (contentTypeId) {
       query = query.eq('note_content_types.content_type_id', contentTypeId);

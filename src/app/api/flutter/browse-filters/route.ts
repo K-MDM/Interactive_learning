@@ -141,25 +141,24 @@ export async function GET(request: Request) {
 
         const subjectMap = new Map<string, any>();
         let hasGeneralSubject = false;
-        const notesWithTax = new Set<string>();
+        const notesWithSubject = new Set<string>();
 
         for (const row of (taxRows || []) as any[]) {
-          notesWithTax.add(row.note_id);
           if (row.subject_id && row.subjects) {
-            const sub = row.subjects;
-            if (!subjectMap.has(sub.id)) subjectMap.set(sub.id, sub);
-          } else if (!row.subject_id) {
+            notesWithSubject.add(row.note_id);
+            if (!subjectMap.has(row.subjects.id)) {
+              subjectMap.set(row.subjects.id, row.subjects);
+            }
+          } else {
             hasGeneralSubject = true;
           }
         }
 
-        // Notes with no taxonomy → treat as "General" subject
-        if (classId === 'all') {
-          for (const nid of targetNoteIds) {
-            if (!notesWithTax.has(nid)) {
-              hasGeneralSubject = true;
-              break;
-            }
+        // Notes with no subject in taxonomy → treat as "General" subject
+        for (const nid of targetNoteIds) {
+          if (!notesWithSubject.has(nid)) {
+            hasGeneralSubject = true;
+            break;
           }
         }
 
