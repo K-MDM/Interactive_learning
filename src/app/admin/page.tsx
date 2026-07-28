@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation';
 import {
   ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader,
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
-  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers, Mail, Send
+  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers, Mail, Send,
+  Search, Filter, ChevronLeft, ChevronRight, CheckSquare, Square, X, RefreshCw
 } from 'lucide-react';
 import LicenceManager from './LicenceManager';
 
@@ -73,6 +74,27 @@ export default function AdminConsole() {
   const [isDeleteNoteModalOpen, setIsDeleteNoteModalOpen] = useState(false);
   const [deletingNote, setDeletingNote] = useState<any>(null);
   const [isDeletingNote, setIsDeletingNote] = useState(false);
+
+  // Search & Filter States for Notes
+  const [noteSearchQuery, setNoteSearchQuery] = useState('');
+  const [noteFilterBoardId, setNoteFilterBoardId] = useState('');
+  const [noteFilterClassId, setNoteFilterClassId] = useState('');
+  const [noteFilterSubjectId, setNoteFilterSubjectId] = useState('');
+  const [noteFilterContentTypeId, setNoteFilterContentTypeId] = useState('');
+  const [noteFilterIsDemo, setNoteFilterIsDemo] = useState<'all' | 'true' | 'false'>('all');
+  const [noteFilterSortBy, setNoteFilterSortBy] = useState<'title_asc' | 'title_desc' | 'created_at_desc' | 'created_at_asc'>('title_asc');
+
+  // Pagination States for Notes
+  const [noteCurrentPage, setNoteCurrentPage] = useState(1);
+  const [noteItemsPerPage, setNoteItemsPerPage] = useState(12);
+  const [noteTotalCount, setNoteTotalCount] = useState(0);
+  const [noteTotalPages, setNoteTotalPages] = useState(1);
+  const [isNotesLoading, setIsNotesLoading] = useState(false);
+
+  // Bulk Delete States for Notes
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Data States
   const [notes, setNotes] = useState<any[]>([]);
@@ -329,9 +351,11 @@ export default function AdminConsole() {
       if (data.error) throw new Error(data.error);
 
       setNotes(notes.filter((n) => n.id !== deletingNote.id));
+      setSelectedNoteIds(prev => prev.filter(id => id !== deletingNote.id));
       setMessage({ type: 'success', text: `Lesson "${deletingNote.title}" deleted successfully.` });
       setIsDeleteNoteModalOpen(false);
       setDeletingNote(null);
+      fetchAdminNotes(noteCurrentPage);
 
       // Refresh metrics
       const metRes = await fetch('/api/admin/metrics');
@@ -342,6 +366,110 @@ export default function AdminConsole() {
     } finally {
       setIsDeletingNote(false);
     }
+  };
+
+  const fetchAdminNotes = async (page = noteCurrentPage) => {
+    setIsNotesLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', noteItemsPerPage.toString());
+      if (noteSearchQuery.trim()) params.set('search', noteSearchQuery.trim());
+      if (noteFilterBoardId) params.set('board_id', noteFilterBoardId);
+      if (noteFilterClassId) params.set('class_id', noteFilterClassId);
+      if (noteFilterSubjectId) params.set('subject_id', noteFilterSubjectId);
+      if (noteFilterContentTypeId) params.set('content_type_id', noteFilterContentTypeId);
+      if (noteFilterIsDemo !== 'all') params.set('is_demo', noteFilterIsDemo);
+      if (noteFilterSortBy) params.set('sort_by', noteFilterSortBy);
+
+      const res = await fetch(`/api/admin/notes?${params.toString()}`);
+      const data = await res.json();
+
+      if (data.success) {
+        setNotes(data.notes || []);
+        setNoteTotalCount(data.pagination?.total || 0);
+        setNoteTotalPages(data.pagination?.totalPages || 1);
+      } else {
+        console.error('Failed to fetch notes:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching admin notes:', err);
+    } finally {
+      setIsNotesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (role === 'super_admin' && activeTab === 'notes') {
+      fetchAdminNotes(noteCurrentPage);
+    }
+  }, [role, activeTab, noteCurrentPage, noteItemsPerPage, noteFilterBoardId, noteFilterClassId, noteFilterSubjectId, noteFilterContentTypeId, noteFilterIsDemo, noteFilterSortBy]);
+
+  useEffect(() => {
+    if (role === 'super_admin' && activeTab === 'notes') {
+      const timer = setTimeout(() => {
+        setNoteCurrentPage(1);
+        fetchAdminNotes(1);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [noteSearchQuery]);
+
+  const toggleSelectNote = (id: string) => {
+    setSelectedNoteIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const isAllPageSelected = notes.length > 0 && notes.every(n => selectedNoteIds.includes(n.id));
+  const toggleSelectAllPage = () => {
+    if (isAllPageSelected) {
+      setSelectedNoteIds(prev => prev.filter(id => !notes.some(n => n.id === id)));
+    } else {
+      const pageIds = notes.map(n => n.id);
+      setSelectedNoteIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleConfirmBulkDeleteNotes = async () => {
+    if (selectedNoteIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch('/api/admin/notes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedNoteIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: `Successfully deleted ${data.count || selectedNoteIds.length} interactive lectures.` });
+        setSelectedNoteIds([]);
+        setIsBulkDeleteModalOpen(false);
+        fetchAdminNotes(noteCurrentPage);
+
+        // Refresh metrics
+        const metRes = await fetch('/api/admin/metrics');
+        const metData = await metRes.json();
+        if (!metData.error) setMetrics(metData);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to bulk delete lectures' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to bulk delete lectures' });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const resetNoteFilters = () => {
+    setNoteSearchQuery('');
+    setNoteFilterBoardId('');
+    setNoteFilterClassId('');
+    setNoteFilterSubjectId('');
+    setNoteFilterContentTypeId('');
+    setNoteFilterIsDemo('all');
+    setNoteFilterSortBy('title_asc');
+    setNoteCurrentPage(1);
   };
 
   // Save Plan modal handler (creates or updates a plan and saves to DB)
@@ -921,8 +1049,8 @@ export default function AdminConsole() {
                     setMessage(null);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === menuItem.id
-                      ? 'bg-blue-50 text-blue-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-blue-50 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   {menuItem.icon}
@@ -944,8 +1072,8 @@ export default function AdminConsole() {
                     setMessage(null);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === menuItem.id
-                      ? 'bg-blue-50 text-blue-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-blue-50 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   {menuItem.icon}
@@ -1011,7 +1139,7 @@ export default function AdminConsole() {
                 )}
               </h1>
             </div>
-            {role === 'super_admin' && activeTab === 'notes' && (
+            {/* {role === 'super_admin' && activeTab === 'notes' && (
               <Link
                 href="/admin/upload"
                 className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
@@ -1019,14 +1147,14 @@ export default function AdminConsole() {
                 <Plus className="w-4 h-4" />
                 <span>Upload Lecture</span>
               </Link>
-            )}
+            )} */}
           </div>
 
           {/* Feedback alerts */}
           {message && (
             <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${message.type === 'success'
-                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                : 'bg-rose-50 border-rose-100 text-rose-700'
+              ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+              : 'bg-rose-50 border-rose-100 text-rose-700'
               }`}>
               {message.type === 'success' ? (
                 <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500" />
@@ -1131,8 +1259,8 @@ export default function AdminConsole() {
                               </td>
                               <td className="py-3.5 text-right">
                                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${signup.web_subscription_active
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : 'bg-slate-100 text-slate-500'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-500'
                                   }`}>
                                   {signup.web_subscription_active ? 'Premium' : 'Free Account'}
                                 </span>
@@ -1227,99 +1355,394 @@ export default function AdminConsole() {
 
           {/* TAB: LECTURES LIST */}
           {activeTab === 'notes' && (
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {notes.length === 0 ? (
-                <div className="col-span-full bg-white border border-slate-200/80 p-12 text-center rounded-2xl shadow-sm">
-                  <p className="text-slate-500 font-semibold text-lg">No notes found.</p>
-                  <p className="text-slate-400 text-xs mt-1">Upload your first interactive lecture file above.</p>
+            <div className="space-y-6">
+              {/* Header & Quick Action */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/80 p-5 rounded-2xl shadow-xs">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 font-display">Interactive Lectures &amp; Notes</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">Manage, search, filter, upload, and bulk delete interactive HTML lessons.</p>
+                </div>
+                <Link
+                  href="/admin/upload"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Upload HTML Lecture</span>
+                </Link>
+              </div>
+
+              {/* Filters & Search Toolbar */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 font-bold text-slate-800 text-sm border-b border-slate-100 pb-3">
+                  <Filter className="w-4 h-4 text-blue-600" />
+                  <span>Search &amp; Category Filters</span>
+                  {(noteSearchQuery || noteFilterBoardId || noteFilterClassId || noteFilterSubjectId || noteFilterContentTypeId || noteFilterIsDemo !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={resetNoteFilters}
+                      className="ml-auto text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Clear Filters</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* Search Bar */}
+                  <div className="lg:col-span-2 relative">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by title or description..."
+                      value={noteSearchQuery}
+                      onChange={(e) => setNoteSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                    {noteSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setNoteSearchQuery('')}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Board Filter */}
+                  <div>
+                    <select
+                      value={noteFilterBoardId}
+                      onChange={(e) => { setNoteFilterBoardId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Boards</option>
+                      {boards.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Class Filter */}
+                  <div>
+                    <select
+                      value={noteFilterClassId}
+                      onChange={(e) => { setNoteFilterClassId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Classes</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Subject Filter */}
+                  <div>
+                    <select
+                      value={noteFilterSubjectId}
+                      onChange={(e) => { setNoteFilterSubjectId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Subjects</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Content Type / Access Filter */}
+                  <div>
+                    <select
+                      value={noteFilterIsDemo}
+                      onChange={(e) => { setNoteFilterIsDemo(e.target.value as any); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="all">All Access (Demo &amp; Paid)</option>
+                      <option value="true">Demo Only</option>
+                      <option value="false">Paid Only</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Order Filter */}
+                  <div>
+                    <select
+                      value={noteFilterSortBy}
+                      onChange={(e) => { setNoteFilterSortBy(e.target.value as any); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-bold text-blue-700"
+                    >
+                      <option value="title_asc">Sort: Name (A-Z)</option>
+                      <option value="title_desc">Sort: Name (Z-A)</option>
+                      <option value="created_at_desc">Sort: Newest First</option>
+                      <option value="created_at_asc">Sort: Oldest First</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bulk Action Bar */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllPage}
+                    className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
+                  >
+                    {isAllPageSelected ? (
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-400" />
+                    )}
+                    <span>Select All on Page ({notes.length})</span>
+                  </button>
+
+                  {selectedNoteIds.length > 0 && (
+                    <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                      {selectedNoteIds.length} Selected
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {selectedNoteIds.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedNoteIds([])}
+                        className="text-xs text-slate-500 hover:text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 transition-colors"
+                      >
+                        Clear Selection
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkDeleteModalOpen(true)}
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Bulk Delete ({selectedNoteIds.length})</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fetchAdminNotes(noteCurrentPage)}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-colors"
+                    title="Refresh listing"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isNotesLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid Listing */}
+              {isNotesLoading ? (
+                <div className="bg-white border border-slate-200/80 p-12 text-center rounded-2xl shadow-xs space-y-3">
+                  <Loader className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                  <p className="text-slate-500 font-medium text-xs">Loading lectures...</p>
+                </div>
+              ) : notes.length === 0 ? (
+                <div className="bg-white border border-slate-200/80 p-12 text-center rounded-2xl shadow-xs">
+                  <p className="text-slate-600 font-bold text-base">No notes or lectures found.</p>
+                  <p className="text-slate-400 text-xs mt-1">Try clearing filters or uploading new HTML content.</p>
                 </div>
               ) : (
-                notes.map((note) => (
-                  <div key={note.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between hover:shadow-md transition-all shadow-sm">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-bold text-slate-900 text-base line-clamp-1 flex-1 font-display">{note.title}</h3>
-                        {note.is_demo && (
-                          <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0">
-                            Demo
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed min-h-[36px]">
-                        {note.description || 'No description provided.'}
-                      </p>
-                    </div>
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {notes.map((note) => {
+                    const isSelected = selectedNoteIds.includes(note.id);
+                    return (
+                      <div
+                        key={note.id}
+                        className={`bg-white border rounded-xl p-5 flex flex-col justify-between hover:shadow-md transition-all shadow-xs relative ${isSelected ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/20' : 'border-slate-200'
+                          }`}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start gap-2 pr-6">
+                            {/* Card Select Checkbox */}
+                            <button
+                              type="button"
+                              onClick={() => toggleSelectNote(note.id)}
+                              className="absolute top-4 left-4 z-10 text-slate-400 hover:text-blue-600"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <Square className="w-4 h-4 text-slate-300 hover:text-slate-500" />
+                              )}
+                            </button>
 
-                    <div className="pt-4 border-t border-slate-100 mt-4 space-y-3">
-                      <div className="flex justify-between items-center text-[10px] text-slate-400">
-                        <span>Uploaded: {new Date(note.created_at).toLocaleDateString()}</span>
-                      </div>
+                            <div className="pl-6 space-y-1 flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-slate-900 text-base line-clamp-1 flex-1 font-display">
+                                  {note.title}
+                                </h3>
+                                {note.is_demo && (
+                                  <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0">
+                                    Demo
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <a
-                            href={getTestLink(note.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
-                          >
-                            <Link2 className="w-3.5 h-3.5" />
-                            <span>Test Link</span>
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => toggleNoteDemo(note.id, note.is_demo)}
-                            className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${note.is_demo
-                                ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                              }`}
-                          >
-                            {note.is_demo ? 'Disable Demo' : 'Make Demo'}
-                          </button>
+                          <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed min-h-[36px] pl-6">
+                            {note.description || 'No description provided.'}
+                          </p>
+
+                          {/* Taxonomy Tags */}
+                          {note.note_taxonomy && note.note_taxonomy.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1 pl-6">
+                              {note.note_taxonomy.slice(0, 3).map((tax: any, idx: number) => (
+                                <span key={idx} className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded">
+                                  {tax.subjects?.name || tax.classes?.name || tax.boards?.name || 'Taxonomy'}
+                                </span>
+                              ))}
+                              {note.note_taxonomy.length > 3 && (
+                                <span className="text-[10px] text-slate-400 font-medium">+{note.note_taxonomy.length - 3} more</span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingNoteData({
-                                id: note.id,
-                                title: note.title,
-                                description: note.description || '',
-                                is_demo: note.is_demo || false,
-                              });
-                              setIsEditNoteModalOpen(true);
-                            }}
-                            className="bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 text-slate-700 hover:text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
-                          >
-                            <Edit className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Edit Details</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDeletingNote(note);
-                              setIsDeleteNoteModalOpen(true);
-                            }}
-                            className="bg-rose-50/70 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                            <span>Delete</span>
-                          </button>
+
+                        <div className="pt-4 border-t border-slate-100 mt-4 space-y-3">
+                          <div className="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>Uploaded: {new Date(note.created_at).toLocaleDateString()}</span>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <a
+                                href={getTestLink(note.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Link2 className="w-3.5 h-3.5" />
+                                <span>Test Link</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => toggleNoteDemo(note.id, note.is_demo)}
+                                className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${note.is_demo
+                                    ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                                  }`}
+                              >
+                                {note.is_demo ? 'Disable Demo' : 'Make Demo'}
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingNoteData({
+                                    id: note.id,
+                                    title: note.title,
+                                    description: note.description || '',
+                                    is_demo: note.is_demo || false,
+                                  });
+                                  setIsEditNoteModalOpen(true);
+                                }}
+                                className="bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 text-slate-700 hover:text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Edit Details</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeletingNote(note);
+                                  setIsDeleteNoteModalOpen(true);
+                                }}
+                                className="bg-rose-50/70 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenNoteTaxonomyModal(note)}
+                              className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-650 font-bold py-2 px-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <Layers className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Categorization Mapping</span>
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenNoteTaxonomyModal(note)}
-                          className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-650 font-bold py-2 px-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <Layers className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Categorization Mapping</span>
-                        </button>
                       </div>
-                    </div>
-                  </div>
-                ))
+                    );
+                  })}
+                </section>
               )}
-            </section>
+
+              {/* Pagination Controls */}
+              {noteTotalCount > 0 && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-xs">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                    <span>
+                      Showing <strong className="text-slate-800">{Math.min((noteCurrentPage - 1) * noteItemsPerPage + 1, noteTotalCount)}</strong> to <strong className="text-slate-800">{Math.min(noteCurrentPage * noteItemsPerPage, noteTotalCount)}</strong> of <strong className="text-slate-800">{noteTotalCount}</strong> lectures
+                    </span>
+                    <select
+                      value={noteItemsPerPage}
+                      onChange={(e) => {
+                        setNoteItemsPerPage(parseInt(e.target.value));
+                        setNoteCurrentPage(1);
+                      }}
+                      className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg px-2 py-1 font-semibold focus:outline-none"
+                    >
+                      <option value={12}>12 per page</option>
+                      <option value={24}>24 per page</option>
+                      <option value={48}>48 per page</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={noteCurrentPage <= 1}
+                      onClick={() => setNoteCurrentPage(prev => Math.max(1, prev - 1))}
+                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    {Array.from({ length: noteTotalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === noteTotalPages || Math.abs(p - noteCurrentPage) <= 1)
+                      .map((p, idx, arr) => {
+                        const prevPage = arr[idx - 1];
+                        const isGap = prevPage && p - prevPage > 1;
+                        return (
+                          <React.Fragment key={p}>
+                            {isGap && <span className="px-1 text-slate-400 text-xs">...</span>}
+                            <button
+                              type="button"
+                              onClick={() => setNoteCurrentPage(p)}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-colors ${noteCurrentPage === p
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                }`}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+
+                    <button
+                      type="button"
+                      disabled={noteCurrentPage >= noteTotalPages}
+                      onClick={() => setNoteCurrentPage(prev => Math.min(noteTotalPages, prev + 1))}
+                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* TAB: SUBSCRIPTION PLANS */}
@@ -1496,8 +1919,8 @@ export default function AdminConsole() {
                           required
                           disabled={!isNewPlan}
                           className={`w-full border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-colors ${isNewPlan
-                              ? 'bg-white border-slate-200 text-slate-800'
-                              : 'bg-slate-100 border-slate-200 text-slate-450 cursor-not-allowed font-mono'
+                            ? 'bg-white border-slate-200 text-slate-800'
+                            : 'bg-slate-100 border-slate-200 text-slate-450 cursor-not-allowed font-mono'
                             }`}
                         />
                         {isNewPlan && (
@@ -1631,11 +2054,10 @@ export default function AdminConsole() {
                 <div className="space-y-3">
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Tax Applicability Mode</label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                      pricing.tax_mode === 'domestic_only'
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'domestic_only'
                         ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-xs">Domestic (India) Only</span>
                         <input
@@ -1652,11 +2074,10 @@ export default function AdminConsole() {
                       </span>
                     </label>
 
-                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                      pricing.tax_mode === 'all'
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'all'
                         ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-xs">All Transactions</span>
                         <input
@@ -1673,11 +2094,10 @@ export default function AdminConsole() {
                       </span>
                     </label>
 
-                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                      pricing.tax_mode === 'per_country'
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'per_country'
                         ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-xs">Per-Country Rates</span>
                         <input
@@ -2883,219 +3303,274 @@ export default function AdminConsole() {
             </div>
           )}
 
-        </div>
+          {/* BULK DELETE NOTES CONFIRMATION MODAL */}
+          {isBulkDeleteModalOpen && selectedNoteIds.length > 0 && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-slate-900 font-display">Bulk Delete Lectures</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Are you sure you want to permanently delete <span className="font-bold text-slate-800">{selectedNoteIds.length} interactive lectures</span>?
+                    </p>
+                    <p className="text-[11px] text-rose-600 font-semibold mt-1">
+                      This action will delete all selected records and clean up associated storage files. It cannot be undone.
+                    </p>
+                  </div>
+                </div>
 
-          {/* TAB: SUPPORT TICKETS (Super Admin Only) */}
-          {role === 'super_admin' && activeTab === 'tickets' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900 font-display">Support Tickets</h3>
-                    <p className="text-slate-500 text-xs mt-0.5">Messages submitted via the contact form.</p>
-                  </div>
-                  {/* Status filter pills */}
-                  <div className="flex flex-wrap gap-2">
-                    {(['all', 'open', 'in_progress', 'resolved'] as const).map((f) => (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => setTicketFilter(f)}
-                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                          ticketFilter === f
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
-                        }`}
-                      >
-                        {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
-                      </button>
+                <div className="bg-slate-50 rounded-xl p-3 max-h-36 overflow-y-auto space-y-1 border border-slate-200/60">
+                  {notes
+                    .filter(n => selectedNoteIds.includes(n.id))
+                    .map(n => (
+                      <div key={n.id} className="text-xs text-slate-700 font-medium truncate flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span className="truncate">{n.title}</span>
+                      </div>
                     ))}
-                  </div>
+                  {selectedNoteIds.length > notes.filter(n => selectedNoteIds.includes(n.id)).length && (
+                    <div className="text-[11px] text-slate-400 italic">
+                      +{selectedNoteIds.length - notes.filter(n => selectedNoteIds.includes(n.id)).length} selected on other pages
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(false)}
+                    disabled={isBulkDeleting}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmBulkDeleteNotes}
+                    disabled={isBulkDeleting}
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-rose-300"
+                  >
+                    {isBulkDeleting ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Delete {selectedNoteIds.length} Lectures</span>}
+                  </button>
                 </div>
               </div>
+            </div>
+          )}
 
-              {tickets.filter(t => ticketFilter === 'all' || t.status === ticketFilter).length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-                  <FileText className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 text-sm font-semibold">No tickets found.</p>
+        </div>
+
+        {/* TAB: SUPPORT TICKETS (Super Admin Only) */}
+        {role === 'super_admin' && activeTab === 'tickets' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 font-display">Support Tickets</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Messages submitted via the contact form.</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {tickets
-                    .filter(t => ticketFilter === 'all' || t.status === ticketFilter)
-                    .map((ticket) => (
-                      <div key={ticket.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                          <div className="space-y-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-mono text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">{ticket.ticket_ref}</span>
-                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
-                                ticket.status === 'open'
-                                  ? 'bg-rose-50 text-rose-600 border-rose-200'
-                                  : ticket.status === 'in_progress'
+                {/* Status filter pills */}
+                <div className="flex flex-wrap gap-2">
+                  {(['all', 'open', 'in_progress', 'resolved'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setTicketFilter(f)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${ticketFilter === f
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
+                        }`}
+                    >
+                      {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {tickets.filter(t => ticketFilter === 'all' || t.status === ticketFilter).length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
+                <FileText className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 text-sm font-semibold">No tickets found.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tickets
+                  .filter(t => ticketFilter === 'all' || t.status === ticketFilter)
+                  .map((ticket) => (
+                    <div key={ticket.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">{ticket.ticket_ref}</span>
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${ticket.status === 'open'
+                                ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                : ticket.status === 'in_progress'
                                   ? 'bg-amber-50 text-amber-600 border-amber-200'
                                   : 'bg-emerald-50 text-emerald-600 border-emerald-200'
                               }`}>
-                                {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-semibold">
-                                {new Date(ticket.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                              {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold">
+                              {new Date(ticket.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-900 text-sm">{ticket.subject}</p>
+                          <p className="text-xs text-slate-500 font-semibold">{ticket.name} &bull; {ticket.email}</p>
+                          <p className="text-sm text-slate-600 leading-relaxed mt-2 line-clamp-3">{ticket.message}</p>
+
+                          {/* Show previous admin reply if present */}
+                          {ticket.admin_notes && (
+                            <div className="mt-3 bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs space-y-1">
+                              <span className="font-bold text-blue-700 uppercase tracking-wider text-[10px]">Admin Reply Sent</span>
+                              <p className="text-slate-700 leading-relaxed">{ticket.admin_notes}</p>
                             </div>
-                            <p className="font-bold text-slate-900 text-sm">{ticket.subject}</p>
-                            <p className="text-xs text-slate-500 font-semibold">{ticket.name} &bull; {ticket.email}</p>
-                            <p className="text-sm text-slate-600 leading-relaxed mt-2 line-clamp-3">{ticket.message}</p>
-
-                            {/* Show previous admin reply if present */}
-                            {ticket.admin_notes && (
-                              <div className="mt-3 bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs space-y-1">
-                                <span className="font-bold text-blue-700 uppercase tracking-wider text-[10px]">Admin Reply Sent</span>
-                                <p className="text-slate-700 leading-relaxed">{ticket.admin_notes}</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (replyingTicketId === ticket.id) {
-                                  setReplyingTicketId(null);
-                                  setReplyMessageText('');
-                                } else {
-                                  setReplyingTicketId(ticket.id);
-                                  setReplyMessageText('');
-                                }
-                              }}
-                              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              <Mail className="w-3.5 h-3.5" />
-                              <span>{replyingTicketId === ticket.id ? 'Cancel Reply' : 'Reply via Email'}</span>
-                            </button>
-
-                            {ticket.status !== 'in_progress' && (
-                              <button
-                                type="button"
-                                disabled={ticketUpdating === ticket.id}
-                                onClick={async () => {
-                                  setTicketUpdating(ticket.id);
-                                  await fetch(`/api/admin/tickets/${ticket.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ status: 'in_progress' }),
-                                  });
-                                  setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'in_progress' } : t));
-                                  setTicketUpdating(null);
-                                }}
-                                className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
-                              >
-                                Mark In Progress
-                              </button>
-                            )}
-                            {ticket.status !== 'resolved' && (
-                              <button
-                                type="button"
-                                disabled={ticketUpdating === ticket.id}
-                                onClick={async () => {
-                                  setTicketUpdating(ticket.id);
-                                  await fetch(`/api/admin/tickets/${ticket.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ status: 'resolved' }),
-                                  });
-                                  setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'resolved', resolved_at: new Date().toISOString() } : t));
-                                  setTicketUpdating(null);
-                                }}
-                                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
-                              >
-                                {ticketUpdating === ticket.id ? 'Saving...' : 'Mark Resolved'}
-                              </button>
-                            )}
-                            {ticket.status === 'resolved' && (
-                              <button
-                                type="button"
-                                disabled={ticketUpdating === ticket.id}
-                                onClick={async () => {
-                                  setTicketUpdating(ticket.id);
-                                  await fetch(`/api/admin/tickets/${ticket.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ status: 'open' }),
-                                  });
-                                  setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'open', resolved_at: null } : t));
-                                  setTicketUpdating(null);
-                                }}
-                                className="px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
-                              >
-                                Reopen
-                              </button>
-                            )}
-                          </div>
+                          )}
                         </div>
 
-                        {/* Expandable Reply Form */}
-                        {replyingTicketId === ticket.id && (
-                          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 bg-slate-50/50 p-4 rounded-xl">
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="font-bold text-slate-700">Reply to <span className="text-blue-600 font-semibold">{ticket.email}</span></span>
-                              <span className="text-[10px] text-slate-400 font-mono">Ref: {ticket.ticket_ref}</span>
-                            </div>
-                            <textarea
-                              rows={3}
-                              value={replyMessageText}
-                              onChange={(e) => setReplyMessageText(e.target.value)}
-                              placeholder={`Type your response to ${ticket.name}...`}
-                              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => { setReplyingTicketId(null); setReplyMessageText(''); }}
-                                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isSendingReply || !replyMessageText.trim()}
-                                onClick={async () => {
-                                  if (!replyMessageText.trim()) return;
-                                  setIsSendingReply(true);
-                                  try {
-                                    const res = await fetch(`/api/admin/tickets/${ticket.id}/reply`, {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ replyMessage: replyMessageText }),
-                                    });
-                                    if (res.ok) {
-                                      setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, admin_notes: replyMessageText, status: 'resolved' } : t));
-                                      setReplyingTicketId(null);
-                                      setReplyMessageText('');
-                                      setMessage({ type: 'success', text: `Email reply sent to ${ticket.email} and marked resolved!` });
-                                    } else {
-                                      setMessage({ type: 'error', text: 'Failed to send email reply.' });
-                                    }
-                                  } catch {
-                                    setMessage({ type: 'error', text: 'Failed to send email reply.' });
-                                  } finally {
-                                    setIsSendingReply(false);
-                                  }
-                                }}
-                                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                              >
-                                {isSendingReply ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                                <span>Send Email &amp; Mark Resolved</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                        {/* Actions */}
+                        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (replyingTicketId === ticket.id) {
+                                setReplyingTicketId(null);
+                                setReplyMessageText('');
+                              } else {
+                                setReplyingTicketId(ticket.id);
+                                setReplyMessageText('');
+                              }
+                            }}
+                            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>{replyingTicketId === ticket.id ? 'Cancel Reply' : 'Reply via Email'}</span>
+                          </button>
+
+                          {ticket.status !== 'in_progress' && (
+                            <button
+                              type="button"
+                              disabled={ticketUpdating === ticket.id}
+                              onClick={async () => {
+                                setTicketUpdating(ticket.id);
+                                await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ status: 'in_progress' }),
+                                });
+                                setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'in_progress' } : t));
+                                setTicketUpdating(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              Mark In Progress
+                            </button>
+                          )}
+                          {ticket.status !== 'resolved' && (
+                            <button
+                              type="button"
+                              disabled={ticketUpdating === ticket.id}
+                              onClick={async () => {
+                                setTicketUpdating(ticket.id);
+                                await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ status: 'resolved' }),
+                                });
+                                setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'resolved', resolved_at: new Date().toISOString() } : t));
+                                setTicketUpdating(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              {ticketUpdating === ticket.id ? 'Saving...' : 'Mark Resolved'}
+                            </button>
+                          )}
+                          {ticket.status === 'resolved' && (
+                            <button
+                              type="button"
+                              disabled={ticketUpdating === ticket.id}
+                              onClick={async () => {
+                                setTicketUpdating(ticket.id);
+                                await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ status: 'open' }),
+                                });
+                                setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'open', resolved_at: null } : t));
+                                setTicketUpdating(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              Reopen
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
+
+                      {/* Expandable Reply Form */}
+                      {replyingTicketId === ticket.id && (
+                        <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 bg-slate-50/50 p-4 rounded-xl">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-700">Reply to <span className="text-blue-600 font-semibold">{ticket.email}</span></span>
+                            <span className="text-[10px] text-slate-400 font-mono">Ref: {ticket.ticket_ref}</span>
+                          </div>
+                          <textarea
+                            rows={3}
+                            value={replyMessageText}
+                            onChange={(e) => setReplyMessageText(e.target.value)}
+                            placeholder={`Type your response to ${ticket.name}...`}
+                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { setReplyingTicketId(null); setReplyMessageText(''); }}
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isSendingReply || !replyMessageText.trim()}
+                              onClick={async () => {
+                                if (!replyMessageText.trim()) return;
+                                setIsSendingReply(true);
+                                try {
+                                  const res = await fetch(`/api/admin/tickets/${ticket.id}/reply`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ replyMessage: replyMessageText }),
+                                  });
+                                  if (res.ok) {
+                                    setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, admin_notes: replyMessageText, status: 'resolved' } : t));
+                                    setReplyingTicketId(null);
+                                    setReplyMessageText('');
+                                    setMessage({ type: 'success', text: `Email reply sent to ${ticket.email} and marked resolved!` });
+                                  } else {
+                                    setMessage({ type: 'error', text: 'Failed to send email reply.' });
+                                  }
+                                } catch {
+                                  setMessage({ type: 'error', text: 'Failed to send email reply.' });
+                                } finally {
+                                  setIsSendingReply(false);
+                                }
+                              }}
+                              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                            >
+                              {isSendingReply ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                              <span>Send Email &amp; Mark Resolved</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <footer className="w-full text-center text-xs text-slate-400 mt-16 pt-4 border-t border-slate-200/50">
