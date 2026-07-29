@@ -50,7 +50,7 @@ export default function LandingPage() {
             <div className="bg-white/85 backdrop-blur-sm border border-slate-200 rounded-3xl p-8 space-y-4 shadow-sm text-center hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:shadow-candy-blue/10">
               <div className="w-12 h-12 rounded-2xl bg-candy-blue/10 border border-candy-blue/20 text-candy-blue flex items-center justify-center font-black text-xl font-display mx-auto">1</div>
               <h3 className="font-bold text-slate-900 text-base">Pick a Subject</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">Choose from chemistry, physics, history, geography, or grammar — all aligned to standard K-12 curricula.</p>
+              <p className="text-slate-500 text-sm leading-relaxed">Choose from Maths, Science, History, Geography, or other subjects — all aligned to standard K-12 curricula.</p>
             </div>
             <div className="bg-white/85 backdrop-blur-sm border border-slate-200 rounded-3xl p-8 space-y-4 shadow-sm text-center hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:shadow-candy-teal/10">
               <div className="w-12 h-12 rounded-2xl bg-candy-teal/10 border border-candy-teal/20 text-candy-teal flex items-center justify-center font-black text-xl font-display mx-auto">2</div>
@@ -91,8 +91,7 @@ export default function LandingPage() {
                 </p>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-500">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-candy-blue" /> Chemistry Reactions &amp; Physics
-                  </li>
+                    <CheckCircle2 className="w-4 h-4 text-candy-blue" /> Maths, Science &amp; Other Subjects                  </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-candy-blue" /> Geographic Topography Maps
                   </li>
@@ -136,7 +135,7 @@ export default function LandingPage() {
                     Designed to work on smartboards, tablets, and laptops. Controls scale cleanly for K-12 classroom projections and independent study at home.
                   </p>
                 </div>
-                <span className="text-xs font-bold text-candy-indigo uppercase tracking-wider">Supports Tablets, Phones &amp; Projectors</span>
+                <span className="text-xs font-bold text-candy-indigo uppercase tracking-wider">Supports Tablets, Phones, Tv, Interactive Panels, etc.</span>
               </div>
             </div>
 

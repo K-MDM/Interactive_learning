@@ -3,7 +3,7 @@
  * Reuses the same Supabase Edge Function pattern as sendLicenceEmail.
  */
 
-const SUPPORT_EMAIL = 'support@keeelai.com';
+const SUPPORT_EMAIL = 'support@keeel.in';
 
 export interface SendContactEmailParams {
   toEmail: string;

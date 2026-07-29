@@ -71,7 +71,7 @@ export default function ContactPage() {
               "url": "https://keeelai.com",
               "contactPoint": {
                 "@type": "ContactPoint",
-                "email": "support@keeelai.com",
+                "email": "support@keeel.in",
                 "contactType": "customer support",
                 "availableLanguage": "English"
               }
@@ -108,7 +108,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Us</h3>
-                  <p className="text-sm font-bold text-slate-900 mt-0.5">support@keeelai.com</p>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">support@keeel.in</p>
                   <p className="text-xs text-slate-500 mt-0.5 font-medium">Average response time: &lt; 2 hours</p>
                 </div>
               </div>

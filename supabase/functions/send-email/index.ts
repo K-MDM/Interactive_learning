@@ -38,7 +38,7 @@
 //             <p style="font-size: 15px; color: #475569;">Hi ${payload.user_name || 'there'},</p>
 //             <p style="font-size: 14px; color: #475569;">Here is an update from our operations team regarding your support ticket (<strong>${payload.ticket_ref || 'N/A'}</strong>):</p>
 //             <div style="background: #f1f5f9; border-left: 4px solid #2563eb; padding: 16px; border-radius: 8px; font-size: 14px; margin: 20px 0; color: #1e293b; white-space: pre-wrap; line-height: 1.6;">${payload.message_body || ''}</div>
-//             <p style="font-size: 13px; color: #64748b;">If you have any further questions, feel free to reply directly to this email or contact support@keeelai.com.</p>
+//             <p style="font-size: 13px; color: #64748b;">If you have any further questions, feel free to reply directly to this email or contact support@keeel.in.</p>
 //             <p style="font-size: 13px; color: #94a3b8; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 16px;">— Keeelai Support Team</p>
 //           </div>
 //         </body>
