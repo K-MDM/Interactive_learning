@@ -1396,9 +1396,9 @@ export default function AdminConsole() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                   {/* Search Bar */}
-                  <div className="lg:col-span-2 relative">
+                  <div className="sm:col-span-2 lg:col-span-2 xl:col-span-1 relative">
                     <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                     <input
                       type="text"
@@ -1460,7 +1460,23 @@ export default function AdminConsole() {
                     </select>
                   </div>
 
-                  {/* Content Type / Access Filter */}
+                  {/* Category Filter */}
+                  <div>
+                    <select
+                      value={noteFilterContentTypeId}
+                      onChange={(e) => { setNoteFilterContentTypeId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Categories</option>
+                      {contentTypes.map((ct) => (
+                        <option key={ct.id} value={ct.id}>
+                          {ct.icon_emoji ? `${ct.icon_emoji} ` : ''}{ct.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Content Access Filter */}
                   <div>
                     <select
                       value={noteFilterIsDemo}

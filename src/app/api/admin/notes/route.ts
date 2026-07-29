@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const boardId       = searchParams.get('board_id') || searchParams.get('boardId');
     const classId       = searchParams.get('class_id') || searchParams.get('classId');
     const subjectId     = searchParams.get('subject_id') || searchParams.get('subjectId');
-    const contentTypeId = searchParams.get('content_type_id') || searchParams.get('contentTypeId');
+    const contentTypeId = searchParams.get('content_type_id') || searchParams.get('contentTypeId') || searchParams.get('category_id') || searchParams.get('categoryId');
     const search        = searchParams.get('search')?.trim();
     const isDemo        = searchParams.get('is_demo') || searchParams.get('isDemo');
     const page          = Math.max(1, parseInt(searchParams.get('page') || '1'));
