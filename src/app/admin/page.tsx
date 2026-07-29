@@ -599,6 +599,8 @@ export default function AdminConsole() {
       setSubjects(dataTax.subjects || []);
       setContentTypes(dataTax.content_types || []);
 
+      fetchAdminNotes(noteCurrentPage);
+
       setIsTaxonomyModalOpen(false);
       setEditingTaxonomyItem(null);
       setMessage({ type: 'success', text: `Taxonomy item saved successfully.` });
@@ -636,6 +638,8 @@ export default function AdminConsole() {
       setClasses(dataTax.classes || []);
       setSubjects(dataTax.subjects || []);
       setContentTypes(dataTax.content_types || []);
+
+      fetchAdminNotes(noteCurrentPage);
 
       setMessage({ type: 'success', text: `${type} deleted successfully.` });
     } catch (err: any) {
@@ -746,6 +750,8 @@ export default function AdminConsole() {
       const dataTax = await resTax.json();
       setActiveNoteTaxonomy(dataTax.taxonomy || []);
 
+      fetchAdminNotes(noteCurrentPage);
+
       setLinkBoardIds([]);
       setLinkClassIds([]);
       setLinkSubjectIds([]);
@@ -777,6 +783,8 @@ export default function AdminConsole() {
       const resTax = await fetch(`/api/super/notes/${activeNote.id}/taxonomy`);
       const dataTax = await resTax.json();
       setActiveNoteTaxonomy(dataTax.taxonomy || []);
+
+      fetchAdminNotes(noteCurrentPage);
 
       setMessage({ type: 'success', text: 'Category mapping removed.' });
     } catch (err: any) {
@@ -1624,8 +1632,8 @@ export default function AdminConsole() {
                                 type="button"
                                 onClick={() => toggleNoteDemo(note.id, note.is_demo)}
                                 className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${note.is_demo
-                                    ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                                  ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                                   }`}
                               >
                                 {note.is_demo ? 'Disable Demo' : 'Make Demo'}
@@ -1720,8 +1728,8 @@ export default function AdminConsole() {
                               type="button"
                               onClick={() => setNoteCurrentPage(p)}
                               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-colors ${noteCurrentPage === p
-                                  ? 'bg-blue-600 text-white shadow-xs'
-                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
                                 }`}
                             >
                               {p}
@@ -2055,8 +2063,8 @@ export default function AdminConsole() {
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Tax Applicability Mode</label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'domestic_only'
-                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
                       }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-xs">Domestic (India) Only</span>
@@ -2075,8 +2083,8 @@ export default function AdminConsole() {
                     </label>
 
                     <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'all'
-                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
                       }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-xs">All Transactions</span>
@@ -2095,8 +2103,8 @@ export default function AdminConsole() {
                     </label>
 
                     <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'per_country'
-                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
                       }`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-xs">Per-Country Rates</span>
@@ -3379,8 +3387,8 @@ export default function AdminConsole() {
                       type="button"
                       onClick={() => setTicketFilter(f)}
                       className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${ticketFilter === f
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
                         }`}
                     >
                       {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -3406,10 +3414,10 @@ export default function AdminConsole() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">{ticket.ticket_ref}</span>
                             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${ticket.status === 'open'
-                                ? 'bg-rose-50 text-rose-600 border-rose-200'
-                                : ticket.status === 'in_progress'
-                                  ? 'bg-amber-50 text-amber-600 border-amber-200'
-                                  : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                              ? 'bg-rose-50 text-rose-600 border-rose-200'
+                              : ticket.status === 'in_progress'
+                                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
                               }`}>
                               {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                             </span>

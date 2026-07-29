@@ -12,11 +12,45 @@ async function verifySuperAdmin() {
   return { user, adminClient };
 }
 
+async function getNextSortOrder(adminClient: any): Promise<number> {
+  const { data } = await adminClient
+    .from('content_types')
+    .select('sort_order')
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  if (data && data.length > 0 && typeof data[0].sort_order === 'number') {
+    return data[0].sort_order + 1;
+  }
+  return 1;
+}
+
+async function shiftSortOrders(adminClient: any, targetSortOrder: number, excludeId?: string) {
+  let query = adminClient
+    .from('content_types')
+    .select('id, sort_order')
+    .gte('sort_order', targetSortOrder);
+
+  if (excludeId) {
+    query = query.neq('id', excludeId);
+  }
+
+  const { data: items } = await query;
+  if (items && items.length > 0) {
+    for (const item of items) {
+      await adminClient
+        .from('content_types')
+        .update({ sort_order: item.sort_order + 1 })
+        .eq('id', item.id);
+    }
+  }
+}
+
 export async function GET() {
   const auth = await verifySuperAdmin();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { data, error } = await auth.adminClient
-    .from('content_types').select('*').order('sort_order');
+    .from('content_types').select('*').order('sort_order', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ content_types: data });
 }
@@ -26,6 +60,15 @@ export async function POST(request: Request) {
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { name, slug, icon_emoji, color_hex, sort_order } = await request.json();
   if (!name || !slug) return NextResponse.json({ error: 'name and slug required' }, { status: 400 });
+
+  let finalSortOrder: number;
+  if (sort_order !== undefined && sort_order !== null && Number(sort_order) > 0) {
+    finalSortOrder = Number(sort_order);
+    await shiftSortOrders(auth.adminClient, finalSortOrder);
+  } else {
+    finalSortOrder = await getNextSortOrder(auth.adminClient);
+  }
+
   const { data, error } = await auth.adminClient
     .from('content_types')
     .insert({
@@ -33,7 +76,7 @@ export async function POST(request: Request) {
       slug: slug.toLowerCase().trim(),
       icon_emoji: icon_emoji ?? null,
       color_hex: color_hex ?? null,
-      sort_order: sort_order ?? 0
+      sort_order: finalSortOrder
     })
     .select().single();
   if (error) {
@@ -53,7 +96,13 @@ export async function PUT(request: Request) {
   if (slug !== undefined) updates.slug = slug.toLowerCase().trim();
   if (icon_emoji !== undefined) updates.icon_emoji = icon_emoji;
   if (color_hex !== undefined) updates.color_hex = color_hex;
-  if (sort_order !== undefined) updates.sort_order = sort_order;
+
+  if (sort_order !== undefined && sort_order !== null && Number(sort_order) > 0) {
+    const finalSortOrder = Number(sort_order);
+    await shiftSortOrders(auth.adminClient, finalSortOrder, id);
+    updates.sort_order = finalSortOrder;
+  }
+
   const { data, error } = await auth.adminClient
     .from('content_types').update(updates).eq('id', id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
