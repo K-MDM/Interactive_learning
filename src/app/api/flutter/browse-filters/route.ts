@@ -4,12 +4,13 @@ import { NextResponse } from 'next/server';
 /**
  * GET /api/flutter/browse-filters
  *
- * Progressive endpoint that returns only filter options with actual content.
+ * Progressive endpoint that returns filter options with actual content.
+ * Uses get_browse_filters stored RPC for maximum performance (<30ms).
  *
  * Query params:
  *   - (none)                → available_categories + others info
- *   - content_type_id=<id>  → also returns available_classes (use 'others' for uncategorized)
- *   - content_type_id + class_id → also returns available_subjects (use 'all' for class-agnostic)
+ *   - content_type_id=<id>  → also returns available_classes
+ *   - content_type_id + class_id → also returns available_subjects
  *
  * Public — no auth required. Cached 5 min.
  */
@@ -20,10 +21,28 @@ export async function GET(request: Request) {
     const classId = searchParams.get('class_id');
 
     const admin = createAdminClient();
+
+    // 1. High-Performance SQL RPC Function Execution
+    const { data: rpcData, error: rpcError } = await admin.rpc('get_browse_filters', {
+      p_content_type_id: contentTypeId === 'others' ? null : contentTypeId,
+      p_class_id: classId,
+    });
+
+    if (!rpcError && rpcData) {
+      return NextResponse.json(rpcData, {
+        headers: {
+          'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+        },
+      });
+    }
+
+    if (rpcError) {
+      console.warn('RPC get_browse_filters not found or failed, using JS fallback:', rpcError.message);
+    }
+
+    // 2. Fallback JS Implementation
     const response: Record<string, unknown> = {};
 
-    // ── STEP 0: Shared data ─────────────────────────────────────────────────
-    // Fetch categories with note counts + all note-content-type mappings + total note count
     const [categoriesRes, allNctRes, notesCountRes] = await Promise.all([
       admin
         .from('content_types')
@@ -39,12 +58,10 @@ export async function GET(request: Request) {
 
     if (categoriesRes.error) throw categoriesRes.error;
 
-    // Set of note IDs that have at least one content type
     const categorizedNoteIds = new Set(
       (allNctRes.data || []).map((r: { note_id: string }) => r.note_id),
     );
 
-    // ── STEP 1: Available Categories (always returned) ──────────────────────
     response.available_categories = (categoriesRes.data || [])
       .filter((ct: any) => (ct.note_content_types?.[0]?.count || 0) > 0)
       .map((ct: any) => ({
@@ -60,18 +77,15 @@ export async function GET(request: Request) {
     response.has_others = othersCount > 0;
     response.others_count = othersCount;
 
-    // ── Resolve target note IDs for the selected category ───────────────────
     let targetNoteIds: string[] | null = null;
 
     if (contentTypeId) {
       if (contentTypeId === 'others') {
-        // Notes without any content type
         const { data: allNotes } = await admin.from('notes').select('id');
         targetNoteIds = (allNotes || [])
           .filter((n: { id: string }) => !categorizedNoteIds.has(n.id))
           .map((n: { id: string }) => n.id);
       } else {
-        // Notes with this specific content type
         const { data: nctRows } = await admin
           .from('note_content_types')
           .select('note_id')
@@ -82,7 +96,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // ── STEP 2: Available Classes (when content_type_id is set) ─────────────
     if (contentTypeId && targetNoteIds) {
       if (targetNoteIds.length === 0) {
         response.available_classes = [];
@@ -107,7 +120,6 @@ export async function GET(request: Request) {
           }
         }
 
-        // Notes with no taxonomy entries at all → treat as "All Classes"
         for (const nid of targetNoteIds) {
           if (!notesWithTax.has(nid)) {
             hasAllClasses = true;
@@ -121,7 +133,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // ── STEP 3: Available Subjects (when content_type_id + class_id are set) ─
     if (contentTypeId && classId && targetNoteIds) {
       if (targetNoteIds.length === 0) {
         response.available_subjects = [];
@@ -132,7 +143,6 @@ export async function GET(request: Request) {
           .select('note_id, class_id, subject_id, subjects(id, name, slug, icon_emoji, sort_order)')
           .in('note_id', targetNoteIds);
 
-        // Filter by selected class (or null/wildcard)
         if (classId !== 'all') {
           taxQuery = taxQuery.or(`class_id.eq.${classId},class_id.is.null`);
         }
@@ -154,7 +164,6 @@ export async function GET(request: Request) {
           }
         }
 
-        // Notes with no subject in taxonomy → treat as "General" subject
         for (const nid of targetNoteIds) {
           if (!notesWithSubject.has(nid)) {
             hasGeneralSubject = true;
