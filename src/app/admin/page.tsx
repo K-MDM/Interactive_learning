@@ -4,17 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader, 
+import {
+  ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader,
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
-  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers
+  Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers, Mail, Send,
+  Search, Filter, ChevronLeft, ChevronRight, CheckSquare, Square, X, RefreshCw
 } from 'lucide-react';
 import LicenceManager from './LicenceManager';
 
 export default function AdminConsole() {
   const supabase = createClient();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students' | 'taxonomy'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'notes' | 'plans' | 'settings' | 'coupons' | 'licenses' | 'codes' | 'students' | 'taxonomy' | 'tickets'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -55,7 +56,7 @@ export default function AdminConsole() {
   const [activeNote, setActiveNote] = useState<any>(null);
   const [activeNoteTaxonomy, setActiveNoteTaxonomy] = useState<any[]>([]);
   const [activeNoteContentTypes, setActiveNoteContentTypes] = useState<any[]>([]);
-  
+
   const [linkBoardIds, setLinkBoardIds] = useState<string[]>([]);
   const [linkClassIds, setLinkClassIds] = useState<string[]>([]);
   const [linkSubjectIds, setLinkSubjectIds] = useState<string[]>([]);
@@ -64,14 +65,48 @@ export default function AdminConsole() {
   const [linkAllClasses, setLinkAllClasses] = useState(true);
   const [linkAllSubjects, setLinkAllSubjects] = useState(true);
 
+  // Edit Note Modal States
+  const [isEditNoteModalOpen, setIsEditNoteModalOpen] = useState(false);
+  const [editingNoteData, setEditingNoteData] = useState<{ id: string; title: string; description: string; is_demo: boolean } | null>(null);
+  const [isUpdatingNote, setIsUpdatingNote] = useState(false);
+
+  // Delete Note Confirmation Modal States
+  const [isDeleteNoteModalOpen, setIsDeleteNoteModalOpen] = useState(false);
+  const [deletingNote, setDeletingNote] = useState<any>(null);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
+
+  // Search & Filter States for Notes
+  const [noteSearchQuery, setNoteSearchQuery] = useState('');
+  const [noteFilterBoardId, setNoteFilterBoardId] = useState('');
+  const [noteFilterClassId, setNoteFilterClassId] = useState('');
+  const [noteFilterSubjectId, setNoteFilterSubjectId] = useState('');
+  const [noteFilterContentTypeId, setNoteFilterContentTypeId] = useState('');
+  const [noteFilterIsDemo, setNoteFilterIsDemo] = useState<'all' | 'true' | 'false'>('all');
+  const [noteFilterSortBy, setNoteFilterSortBy] = useState<'title_asc' | 'title_desc' | 'created_at_desc' | 'created_at_asc'>('title_asc');
+
+  // Pagination States for Notes
+  const [noteCurrentPage, setNoteCurrentPage] = useState(1);
+  const [noteItemsPerPage, setNoteItemsPerPage] = useState(12);
+  const [noteTotalCount, setNoteTotalCount] = useState(0);
+  const [noteTotalPages, setNoteTotalPages] = useState(1);
+  const [isNotesLoading, setIsNotesLoading] = useState(false);
+
+  // Bulk Delete States for Notes
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Data States
   const [notes, setNotes] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
-  
+
   // Settings States
   const [pricing, setPricing] = useState<any>({
     plans: [],
-    tax_percent: 18
+    tax_mode: 'domestic_only',
+    tax_percent: 18,
+    intl_fee_percent: 3.0,
+    domestic_country: 'IN'
   });
 
   // Plans Modal States
@@ -92,6 +127,14 @@ export default function AdminConsole() {
     estimatedMRR: 0,
     recentSignups: [] as any[]
   });
+
+  // Support Tickets State
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketFilter, setTicketFilter] = useState<'all' | 'open' | 'in_progress' | 'resolved'>('all');
+  const [ticketUpdating, setTicketUpdating] = useState<string | null>(null);
+  const [replyingTicketId, setReplyingTicketId] = useState<string | null>(null);
+  const [replyMessageText, setReplyMessageText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   // New Coupon Form States
   const [newCouponCode, setNewCouponCode] = useState('');
@@ -153,12 +196,19 @@ export default function AdminConsole() {
         const { data: dbSettings } = await supabase
           .from('settings')
           .select('*');
-        
+
         let taxPercent = 18;
+        let taxMode = 'domestic_only';
+        let intlFeePercent = 3.0;
+        let domesticCountry = 'IN';
+
         if (dbSettings) {
           const pricingRow = dbSettings.find(s => s.key === 'pricing');
           if (pricingRow && pricingRow.value) {
-            taxPercent = pricingRow.value.tax_percent || 18;
+            taxPercent = typeof pricingRow.value.tax_percent === 'number' ? pricingRow.value.tax_percent : 18;
+            taxMode = pricingRow.value.tax_mode || 'domestic_only';
+            intlFeePercent = typeof pricingRow.value.intl_fee_percent === 'number' ? pricingRow.value.intl_fee_percent : 3.0;
+            domesticCountry = pricingRow.value.domestic_country || 'IN';
           }
 
           const downloadsRow = dbSettings.find(s => s.key === 'downloads');
@@ -167,7 +217,10 @@ export default function AdminConsole() {
 
         setPricing({
           plans: dbPlans || [],
-          tax_percent: taxPercent
+          tax_mode: taxMode,
+          tax_percent: taxPercent,
+          intl_fee_percent: intlFeePercent,
+          domestic_country: domesticCountry,
         });
 
         // 4. Fetch metrics
@@ -189,7 +242,12 @@ export default function AdminConsole() {
         setClasses(dataTax.classes || []);
         setSubjects(dataTax.subjects || []);
         setContentTypes(dataTax.content_types || []);
-      } 
+
+        // 7. Fetch support tickets
+        const resTickets = await fetch('/api/admin/tickets');
+        const dataTickets = await resTickets.json();
+        setTickets(dataTickets.tickets || []);
+      }
       else if (userRole === 'school_admin') {
         // Load School Admin local data
         // 1. Fetch school license details
@@ -249,6 +307,171 @@ export default function AdminConsole() {
     }
   };
 
+  // Handle Save Note Edit
+  const handleSaveNoteEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNoteData || !editingNoteData.title.trim()) return;
+
+    setIsUpdatingNote(true);
+    try {
+      const res = await fetch('/api/admin/notes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          noteId: editingNoteData.id,
+          title: editingNoteData.title,
+          description: editingNoteData.description,
+          isDemo: editingNoteData.is_demo,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setNotes(notes.map((n) => (n.id === editingNoteData.id ? { ...n, ...data.note } : n)));
+      setMessage({ type: 'success', text: `Lesson "${editingNoteData.title}" updated successfully.` });
+      setIsEditNoteModalOpen(false);
+      setEditingNoteData(null);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update lesson' });
+    } finally {
+      setIsUpdatingNote(false);
+    }
+  };
+
+  // Handle Delete Note
+  const handleConfirmDeleteNote = async () => {
+    if (!deletingNote) return;
+
+    setIsDeletingNote(true);
+    try {
+      const res = await fetch(`/api/admin/notes?id=${deletingNote.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setNotes(notes.filter((n) => n.id !== deletingNote.id));
+      setSelectedNoteIds(prev => prev.filter(id => id !== deletingNote.id));
+      setMessage({ type: 'success', text: `Lesson "${deletingNote.title}" deleted successfully.` });
+      setIsDeleteNoteModalOpen(false);
+      setDeletingNote(null);
+      fetchAdminNotes(noteCurrentPage);
+
+      // Refresh metrics
+      const metRes = await fetch('/api/admin/metrics');
+      const metData = await metRes.json();
+      if (!metData.error) setMetrics(metData);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to delete lesson' });
+    } finally {
+      setIsDeletingNote(false);
+    }
+  };
+
+  const fetchAdminNotes = async (page = noteCurrentPage) => {
+    setIsNotesLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', noteItemsPerPage.toString());
+      if (noteSearchQuery.trim()) params.set('search', noteSearchQuery.trim());
+      if (noteFilterBoardId) params.set('board_id', noteFilterBoardId);
+      if (noteFilterClassId) params.set('class_id', noteFilterClassId);
+      if (noteFilterSubjectId) params.set('subject_id', noteFilterSubjectId);
+      if (noteFilterContentTypeId) params.set('content_type_id', noteFilterContentTypeId);
+      if (noteFilterIsDemo !== 'all') params.set('is_demo', noteFilterIsDemo);
+      if (noteFilterSortBy) params.set('sort_by', noteFilterSortBy);
+
+      const res = await fetch(`/api/admin/notes?${params.toString()}`);
+      const data = await res.json();
+
+      if (data.success) {
+        setNotes(data.notes || []);
+        setNoteTotalCount(data.pagination?.total || 0);
+        setNoteTotalPages(data.pagination?.totalPages || 1);
+      } else {
+        console.error('Failed to fetch notes:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching admin notes:', err);
+    } finally {
+      setIsNotesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (role === 'super_admin' && activeTab === 'notes') {
+      fetchAdminNotes(noteCurrentPage);
+    }
+  }, [role, activeTab, noteCurrentPage, noteItemsPerPage, noteFilterBoardId, noteFilterClassId, noteFilterSubjectId, noteFilterContentTypeId, noteFilterIsDemo, noteFilterSortBy]);
+
+  useEffect(() => {
+    if (role === 'super_admin' && activeTab === 'notes') {
+      const timer = setTimeout(() => {
+        setNoteCurrentPage(1);
+        fetchAdminNotes(1);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [noteSearchQuery]);
+
+  const toggleSelectNote = (id: string) => {
+    setSelectedNoteIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const isAllPageSelected = notes.length > 0 && notes.every(n => selectedNoteIds.includes(n.id));
+  const toggleSelectAllPage = () => {
+    if (isAllPageSelected) {
+      setSelectedNoteIds(prev => prev.filter(id => !notes.some(n => n.id === id)));
+    } else {
+      const pageIds = notes.map(n => n.id);
+      setSelectedNoteIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleConfirmBulkDeleteNotes = async () => {
+    if (selectedNoteIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch('/api/admin/notes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedNoteIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: `Successfully deleted ${data.count || selectedNoteIds.length} interactive lectures.` });
+        setSelectedNoteIds([]);
+        setIsBulkDeleteModalOpen(false);
+        fetchAdminNotes(noteCurrentPage);
+
+        // Refresh metrics
+        const metRes = await fetch('/api/admin/metrics');
+        const metData = await metRes.json();
+        if (!metData.error) setMetrics(metData);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to bulk delete lectures' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to bulk delete lectures' });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const resetNoteFilters = () => {
+    setNoteSearchQuery('');
+    setNoteFilterBoardId('');
+    setNoteFilterClassId('');
+    setNoteFilterSubjectId('');
+    setNoteFilterContentTypeId('');
+    setNoteFilterIsDemo('all');
+    setNoteFilterSortBy('title_asc');
+    setNoteCurrentPage(1);
+  };
+
   // Save Plan modal handler (creates or updates a plan and saves to DB)
   const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,7 +508,7 @@ export default function AdminConsole() {
       setIsPlanModalOpen(false);
       setEditingPlan(null);
       setMessage({ type: 'success', text: `Plan '${editingPlan.name}' saved successfully.` });
-      
+
       // Reload administrative console stats/metrics
       loadAdminData();
     } catch (err: any) {
@@ -314,7 +537,7 @@ export default function AdminConsole() {
 
       setPricing({ ...pricing, plans: updatedPlans });
       setMessage({ type: 'success', text: `Plan '${planName}' deleted.` });
-      
+
       // Reload administrative console stats/metrics
       loadAdminData();
     } catch (err: any) {
@@ -376,6 +599,8 @@ export default function AdminConsole() {
       setSubjects(dataTax.subjects || []);
       setContentTypes(dataTax.content_types || []);
 
+      fetchAdminNotes(noteCurrentPage);
+
       setIsTaxonomyModalOpen(false);
       setEditingTaxonomyItem(null);
       setMessage({ type: 'success', text: `Taxonomy item saved successfully.` });
@@ -413,6 +638,8 @@ export default function AdminConsole() {
       setClasses(dataTax.classes || []);
       setSubjects(dataTax.subjects || []);
       setContentTypes(dataTax.content_types || []);
+
+      fetchAdminNotes(noteCurrentPage);
 
       setMessage({ type: 'success', text: `${type} deleted successfully.` });
     } catch (err: any) {
@@ -522,7 +749,9 @@ export default function AdminConsole() {
       const resTax = await fetch(`/api/super/notes/${activeNote.id}/taxonomy`);
       const dataTax = await resTax.json();
       setActiveNoteTaxonomy(dataTax.taxonomy || []);
-      
+
+      fetchAdminNotes(noteCurrentPage);
+
       setLinkBoardIds([]);
       setLinkClassIds([]);
       setLinkSubjectIds([]);
@@ -555,6 +784,8 @@ export default function AdminConsole() {
       const dataTax = await resTax.json();
       setActiveNoteTaxonomy(dataTax.taxonomy || []);
 
+      fetchAdminNotes(noteCurrentPage);
+
       setMessage({ type: 'success', text: 'Category mapping removed.' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to delete taxonomy mapping' });
@@ -579,11 +810,19 @@ export default function AdminConsole() {
       const dataPricing = await resPricing.json();
       if (dataPricing.error) throw new Error(dataPricing.error);
 
-      // Save Tax Percent via secure settings API
+      // Save Tax & Jurisdiction settings via secure settings API
       const resTax = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'pricing', value: { tax_percent: pricing.tax_percent } })
+        body: JSON.stringify({
+          key: 'pricing',
+          value: {
+            tax_mode: pricing.tax_mode || 'domestic_only',
+            tax_percent: Number(pricing.tax_percent ?? 18),
+            intl_fee_percent: Number(pricing.intl_fee_percent ?? 3.0),
+            domestic_country: (pricing.domestic_country || 'IN').toUpperCase(),
+          }
+        })
       });
       const dataTax = await resTax.json();
       if (dataTax.error) throw new Error(dataTax.error);
@@ -778,13 +1017,13 @@ export default function AdminConsole() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans">
-      
+
       {/* LEFT SIDE DRAWER / SIDEBAR PANEL */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between sticky top-0 h-screen z-20 shrink-0">
-        
+
         {/* Upper Menu block */}
         <div className="p-6 space-y-8">
-          
+
           {/* Dashboard Logo Header */}
           <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
             <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
@@ -806,6 +1045,7 @@ export default function AdminConsole() {
                 { id: 'notes', label: 'Interactive Lectures', icon: <BookOpen className="w-4 h-4" /> },
                 { id: 'plans', label: 'Subscription Plans', icon: <DollarSign className="w-4 h-4" /> },
                 { id: 'coupons', label: 'Coupon Codes', icon: <Tag className="w-4 h-4" /> },
+                { id: 'tickets', label: 'Support Tickets', icon: <FileText className="w-4 h-4" /> },
                 { id: 'settings', label: 'System Configs', icon: <Settings className="w-4 h-4" /> },
                 { id: 'taxonomy', label: 'Taxonomy Data', icon: <Layers className="w-4 h-4" /> }
               ].map((menuItem) => (
@@ -816,11 +1056,10 @@ export default function AdminConsole() {
                     setActiveTab(menuItem.id as any);
                     setMessage(null);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === menuItem.id 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === menuItem.id
+                    ? 'bg-blue-50 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
                 >
                   {menuItem.icon}
                   <span>{menuItem.label}</span>
@@ -840,11 +1079,10 @@ export default function AdminConsole() {
                     setActiveTab(menuItem.id as any);
                     setMessage(null);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === menuItem.id 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === menuItem.id
+                    ? 'bg-blue-50 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
                 >
                   {menuItem.icon}
                   <span>{menuItem.label}</span>
@@ -860,7 +1098,7 @@ export default function AdminConsole() {
           <div className="px-2">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Logged in as</span>
             <span className="text-xs font-semibold text-slate-700 truncate block mt-0.5" title={adminEmail || ''}>
-              {adminEmail || 'admin@keeel.ai'}
+              {adminEmail || 'admin@keeelai.com'}
             </span>
             <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-1 block">
               {role === 'super_admin' ? 'Super Admin' : 'School Admin'}
@@ -880,53 +1118,52 @@ export default function AdminConsole() {
 
       {/* RIGHT SIDE MAIN CONTENT PANEL */}
       <main className="flex-1 overflow-y-auto p-8 relative flex flex-col justify-between">
-        
+
         <div className="space-y-8">
-          
+
           {/* Header */}
           <div className="flex justify-between items-center pb-4 border-b border-slate-200/60">
             <div>
               <span className="text-xs text-slate-455 font-semibold uppercase tracking-wider">Console / {activeTab}</span>
               <h1 className="text-2xl font-extrabold text-slate-900 mt-1 capitalize font-display">
                 {role === 'super_admin' ? (
-                  activeTab === 'notes' 
-                    ? 'Interactive Lectures' 
-                    : activeTab === 'plans' 
-                    ? 'Subscription Plans' 
-                    : activeTab === 'settings' 
-                    ? 'System Configurations' 
-                    : activeTab === 'coupons' 
-                    ? 'Coupon Manager' 
-                    : activeTab === 'licenses'
-                    ? 'School Licenses Control'
-                    : 'Global Dashboard Metrics'
+                  activeTab === 'notes'
+                    ? 'Interactive Lectures'
+                    : activeTab === 'plans'
+                      ? 'Subscription Plans'
+                      : activeTab === 'settings'
+                        ? 'System Configurations'
+                        : activeTab === 'coupons'
+                          ? 'Coupon Manager'
+                          : activeTab === 'licenses'
+                            ? 'School Licenses Control'
+                            : 'Global Dashboard Metrics'
                 ) : (
-                  activeTab === 'codes' 
-                    ? 'School Access Codes' 
-                    : activeTab === 'students' 
-                    ? 'Enrolled Students' 
-                    : 'School License Summary'
+                  activeTab === 'codes'
+                    ? 'School Access Codes'
+                    : activeTab === 'students'
+                      ? 'Enrolled Students'
+                      : 'School License Summary'
                 )}
               </h1>
             </div>
-            {role === 'super_admin' && activeTab === 'notes' && (
-              <Link 
+            {/* {role === 'super_admin' && activeTab === 'notes' && (
+              <Link
                 href="/admin/upload"
                 className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Upload Lecture</span>
               </Link>
-            )}
+            )} */}
           </div>
 
           {/* Feedback alerts */}
           {message && (
-            <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${
-              message.type === 'success' 
-                ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
-                : 'bg-rose-50 border-rose-100 text-rose-700'
-            }`}>
+            <div className={`p-4 rounded-xl border text-sm font-semibold flex items-start gap-2.5 ${message.type === 'success'
+              ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+              : 'bg-rose-50 border-rose-100 text-rose-700'
+              }`}>
               {message.type === 'success' ? (
                 <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500" />
               ) : (
@@ -941,7 +1178,7 @@ export default function AdminConsole() {
           {/* TAB: DASHBOARD METRICS */}
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
-              
+
               {/* KPI Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
@@ -1003,7 +1240,7 @@ export default function AdminConsole() {
 
               {/* Sub-grid section */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 {/* Recent Registrations Table (Operational View) */}
                 <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                   <h3 className="text-base font-bold text-slate-900 font-display">Recent Registrations</h3>
@@ -1029,11 +1266,10 @@ export default function AdminConsole() {
                                 {new Date(signup.created_at).toLocaleDateString()}
                               </td>
                               <td className="py-3.5 text-right">
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                  signup.web_subscription_active 
-                                    ? 'bg-emerald-50 text-emerald-700' 
-                                    : 'bg-slate-100 text-slate-500'
-                                }`}>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${signup.web_subscription_active
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-500'
+                                  }`}>
                                   {signup.web_subscription_active ? 'Premium' : 'Free Account'}
                                 </span>
                               </td>
@@ -1127,71 +1363,410 @@ export default function AdminConsole() {
 
           {/* TAB: LECTURES LIST */}
           {activeTab === 'notes' && (
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {notes.length === 0 ? (
-                <div className="col-span-full bg-white border border-slate-200/80 p-12 text-center rounded-2xl shadow-sm">
-                  <p className="text-slate-500 font-semibold text-lg">No notes found.</p>
-                  <p className="text-slate-400 text-xs mt-1">Upload your first interactive lecture file above.</p>
+            <div className="space-y-6">
+              {/* Header & Quick Action */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/80 p-5 rounded-2xl shadow-xs">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 font-display">Interactive Lectures &amp; Notes</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">Manage, search, filter, upload, and bulk delete interactive HTML lessons.</p>
+                </div>
+                <Link
+                  href="/admin/upload"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Upload HTML Lecture</span>
+                </Link>
+              </div>
+
+              {/* Filters & Search Toolbar */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 font-bold text-slate-800 text-sm border-b border-slate-100 pb-3">
+                  <Filter className="w-4 h-4 text-blue-600" />
+                  <span>Search &amp; Category Filters</span>
+                  {(noteSearchQuery || noteFilterBoardId || noteFilterClassId || noteFilterSubjectId || noteFilterContentTypeId || noteFilterIsDemo !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={resetNoteFilters}
+                      className="ml-auto text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Clear Filters</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                  {/* Search Bar */}
+                  <div className="sm:col-span-2 lg:col-span-2 xl:col-span-1 relative">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by title or description..."
+                      value={noteSearchQuery}
+                      onChange={(e) => setNoteSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                    {noteSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setNoteSearchQuery('')}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Board Filter */}
+                  <div>
+                    <select
+                      value={noteFilterBoardId}
+                      onChange={(e) => { setNoteFilterBoardId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Boards</option>
+                      {boards.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Class Filter */}
+                  <div>
+                    <select
+                      value={noteFilterClassId}
+                      onChange={(e) => { setNoteFilterClassId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Classes</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Subject Filter */}
+                  <div>
+                    <select
+                      value={noteFilterSubjectId}
+                      onChange={(e) => { setNoteFilterSubjectId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Subjects</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div>
+                    <select
+                      value={noteFilterContentTypeId}
+                      onChange={(e) => { setNoteFilterContentTypeId(e.target.value); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="">All Categories</option>
+                      {contentTypes.map((ct) => (
+                        <option key={ct.id} value={ct.id}>
+                          {ct.icon_emoji ? `${ct.icon_emoji} ` : ''}{ct.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Content Access Filter */}
+                  <div>
+                    <select
+                      value={noteFilterIsDemo}
+                      onChange={(e) => { setNoteFilterIsDemo(e.target.value as any); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      <option value="all">All Access (Demo &amp; Paid)</option>
+                      <option value="true">Demo Only</option>
+                      <option value="false">Paid Only</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Order Filter */}
+                  <div>
+                    <select
+                      value={noteFilterSortBy}
+                      onChange={(e) => { setNoteFilterSortBy(e.target.value as any); setNoteCurrentPage(1); }}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 font-bold text-blue-700"
+                    >
+                      <option value="title_asc">Sort: Name (A-Z)</option>
+                      <option value="title_desc">Sort: Name (Z-A)</option>
+                      <option value="created_at_desc">Sort: Newest First</option>
+                      <option value="created_at_asc">Sort: Oldest First</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bulk Action Bar */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllPage}
+                    className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
+                  >
+                    {isAllPageSelected ? (
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-400" />
+                    )}
+                    <span>Select All on Page ({notes.length})</span>
+                  </button>
+
+                  {selectedNoteIds.length > 0 && (
+                    <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                      {selectedNoteIds.length} Selected
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {selectedNoteIds.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedNoteIds([])}
+                        className="text-xs text-slate-500 hover:text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 transition-colors"
+                      >
+                        Clear Selection
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkDeleteModalOpen(true)}
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Bulk Delete ({selectedNoteIds.length})</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fetchAdminNotes(noteCurrentPage)}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-colors"
+                    title="Refresh listing"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isNotesLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid Listing */}
+              {isNotesLoading ? (
+                <div className="bg-white border border-slate-200/80 p-12 text-center rounded-2xl shadow-xs space-y-3">
+                  <Loader className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                  <p className="text-slate-500 font-medium text-xs">Loading lectures...</p>
+                </div>
+              ) : notes.length === 0 ? (
+                <div className="bg-white border border-slate-200/80 p-12 text-center rounded-2xl shadow-xs">
+                  <p className="text-slate-600 font-bold text-base">No notes or lectures found.</p>
+                  <p className="text-slate-400 text-xs mt-1">Try clearing filters or uploading new HTML content.</p>
                 </div>
               ) : (
-                notes.map((note) => (
-                  <div key={note.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between hover:shadow-md transition-all shadow-sm">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-bold text-slate-900 text-base line-clamp-1 flex-1 font-display">{note.title}</h3>
-                        {note.is_demo && (
-                          <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0">
-                            Demo
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed min-h-[36px]">
-                        {note.description || 'No description provided.'}
-                      </p>
-                    </div>
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {notes.map((note) => {
+                    const isSelected = selectedNoteIds.includes(note.id);
+                    return (
+                      <div
+                        key={note.id}
+                        className={`bg-white border rounded-xl p-5 flex flex-col justify-between hover:shadow-md transition-all shadow-xs relative ${isSelected ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/20' : 'border-slate-200'
+                          }`}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start gap-2 pr-6">
+                            {/* Card Select Checkbox */}
+                            <button
+                              type="button"
+                              onClick={() => toggleSelectNote(note.id)}
+                              className="absolute top-4 left-4 z-10 text-slate-400 hover:text-blue-600"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <Square className="w-4 h-4 text-slate-300 hover:text-slate-500" />
+                              )}
+                            </button>
 
-                    <div className="pt-4 border-t border-slate-100 mt-4 space-y-3">
-                      <div className="flex justify-between items-center text-[10px] text-slate-400">
-                        <span>Uploaded: {new Date(note.created_at).toLocaleDateString()}</span>
-                      </div>
+                            <div className="pl-6 space-y-1 flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-slate-900 text-base line-clamp-1 flex-1 font-display">
+                                  {note.title}
+                                </h3>
+                                {note.is_demo && (
+                                  <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0">
+                                    Demo
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <a 
-                            href={getTestLink(note.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
-                          >
-                            <Link2 className="w-3.5 h-3.5" />
-                            <span>Test Link</span>
-                          </a>
-                          <button 
-                            type="button"
-                            onClick={() => toggleNoteDemo(note.id, note.is_demo)}
-                            className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${
-                              note.is_demo 
-                                ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
-                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            {note.is_demo ? 'Disable Demo' : 'Make Demo'}
-                          </button>
+                          <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed min-h-[36px] pl-6">
+                            {note.description || 'No description provided.'}
+                          </p>
+
+                          {/* Taxonomy Tags */}
+                          {note.note_taxonomy && note.note_taxonomy.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1 pl-6">
+                              {note.note_taxonomy.slice(0, 3).map((tax: any, idx: number) => (
+                                <span key={idx} className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded">
+                                  {tax.subjects?.name || tax.classes?.name || tax.boards?.name || 'Taxonomy'}
+                                </span>
+                              ))}
+                              {note.note_taxonomy.length > 3 && (
+                                <span className="text-[10px] text-slate-400 font-medium">+{note.note_taxonomy.length - 3} more</span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenNoteTaxonomyModal(note)}
-                          className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-650 font-bold py-2 px-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <Layers className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Categorization Mapping</span>
-                        </button>
+
+                        <div className="pt-4 border-t border-slate-100 mt-4 space-y-3">
+                          <div className="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>Uploaded: {new Date(note.created_at).toLocaleDateString()}</span>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <a
+                                href={getTestLink(note.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Link2 className="w-3.5 h-3.5" />
+                                <span>Test Link</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => toggleNoteDemo(note.id, note.is_demo)}
+                                className={`border font-bold py-2 px-2.5 rounded-lg text-xs transition-colors ${note.is_demo
+                                  ? 'border-emerald-250 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                                  }`}
+                              >
+                                {note.is_demo ? 'Disable Demo' : 'Make Demo'}
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingNoteData({
+                                    id: note.id,
+                                    title: note.title,
+                                    description: note.description || '',
+                                    is_demo: note.is_demo || false,
+                                  });
+                                  setIsEditNoteModalOpen(true);
+                                }}
+                                className="bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 text-slate-700 hover:text-blue-600 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Edit Details</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeletingNote(note);
+                                  setIsDeleteNoteModalOpen(true);
+                                }}
+                                className="bg-rose-50/70 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenNoteTaxonomyModal(note)}
+                              className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-650 font-bold py-2 px-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <Layers className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Categorization Mapping</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))
+                    );
+                  })}
+                </section>
               )}
-            </section>
+
+              {/* Pagination Controls */}
+              {noteTotalCount > 0 && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-xs">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                    <span>
+                      Showing <strong className="text-slate-800">{Math.min((noteCurrentPage - 1) * noteItemsPerPage + 1, noteTotalCount)}</strong> to <strong className="text-slate-800">{Math.min(noteCurrentPage * noteItemsPerPage, noteTotalCount)}</strong> of <strong className="text-slate-800">{noteTotalCount}</strong> lectures
+                    </span>
+                    <select
+                      value={noteItemsPerPage}
+                      onChange={(e) => {
+                        setNoteItemsPerPage(parseInt(e.target.value));
+                        setNoteCurrentPage(1);
+                      }}
+                      className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg px-2 py-1 font-semibold focus:outline-none"
+                    >
+                      <option value={12}>12 per page</option>
+                      <option value={24}>24 per page</option>
+                      <option value={48}>48 per page</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={noteCurrentPage <= 1}
+                      onClick={() => setNoteCurrentPage(prev => Math.max(1, prev - 1))}
+                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    {Array.from({ length: noteTotalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === noteTotalPages || Math.abs(p - noteCurrentPage) <= 1)
+                      .map((p, idx, arr) => {
+                        const prevPage = arr[idx - 1];
+                        const isGap = prevPage && p - prevPage > 1;
+                        return (
+                          <React.Fragment key={p}>
+                            {isGap && <span className="px-1 text-slate-400 text-xs">...</span>}
+                            <button
+                              type="button"
+                              onClick={() => setNoteCurrentPage(p)}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-colors ${noteCurrentPage === p
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                }`}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+
+                    <button
+                      type="button"
+                      disabled={noteCurrentPage >= noteTotalPages}
+                      onClick={() => setNoteCurrentPage(prev => Math.min(noteTotalPages, prev + 1))}
+                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* TAB: SUBSCRIPTION PLANS */}
@@ -1202,7 +1777,7 @@ export default function AdminConsole() {
                   <h3 className="text-base font-bold text-slate-900 font-display">Manage Subscription Plans</h3>
                   <p className="text-slate-500 text-xs mt-0.5">Configure available purchase options displayed to students during checkout.</p>
                 </div>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     setEditingPlan({
@@ -1232,8 +1807,8 @@ export default function AdminConsole() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pricing.plans.map((plan: any) => (
-                    <div 
-                      key={plan.id} 
+                    <div
+                      key={plan.id}
                       className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-200 shadow-sm relative overflow-hidden"
                     >
                       {/* Top Bar with Plan Identifier and Edit/Delete controls */}
@@ -1297,7 +1872,7 @@ export default function AdminConsole() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Dashed Add New Plan Card Placeholder */}
                   <button
                     type="button"
@@ -1329,7 +1904,7 @@ export default function AdminConsole() {
               {/* Plans Editing overlay Modal */}
               {isPlanModalOpen && (
                 <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                  <div 
+                  <div
                     className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 animate-in slide-in-from-bottom-6 zoom-in-95 duration-200"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -1367,11 +1942,10 @@ export default function AdminConsole() {
                           }}
                           required
                           disabled={!isNewPlan}
-                          className={`w-full border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-colors ${
-                            isNewPlan 
-                              ? 'bg-white border-slate-200 text-slate-800' 
-                              : 'bg-slate-100 border-slate-200 text-slate-450 cursor-not-allowed font-mono'
-                          }`}
+                          className={`w-full border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-colors ${isNewPlan
+                            ? 'bg-white border-slate-200 text-slate-800'
+                            : 'bg-slate-100 border-slate-200 text-slate-450 cursor-not-allowed font-mono'
+                            }`}
                         />
                         {isNewPlan && (
                           <span className="text-[10px] text-slate-400 block mt-1 leading-normal">
@@ -1393,7 +1967,7 @@ export default function AdminConsole() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-3">
                         {/* Duration */}
                         <div>
                           <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Duration (Months)</label>
@@ -1407,9 +1981,9 @@ export default function AdminConsole() {
                           />
                         </div>
 
-                        {/* Price */}
+                        {/* Price (USD) */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Price (USD)</label>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">Intl. Price (USD)</label>
                           <input
                             type="number"
                             step="0.01"
@@ -1417,6 +1991,20 @@ export default function AdminConsole() {
                             value={editingPlan?.price_usd || ''}
                             onChange={(e) => setEditingPlan({ ...editingPlan, price_usd: parseFloat(e.target.value) || 0 })}
                             required
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+
+                        {/* Price (INR) */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-450 uppercase tracking-wider mb-1.5">India Price (INR)</label>
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            placeholder="e.g. 990"
+                            value={editingPlan?.price_inr ?? ''}
+                            onChange={(e) => setEditingPlan({ ...editingPlan, price_inr: parseFloat(e.target.value) || 0 })}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-colors"
                           />
                         </div>
@@ -1478,19 +2066,126 @@ export default function AdminConsole() {
           {/* TAB: SYSTEM SETTINGS */}
           {activeTab === 'settings' && (
             <form onSubmit={handleSaveSettings} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
-              
-              {/* Global Config Section */}
-              <div className="space-y-4">
-                <h3 className="text-base font-bold text-slate-900 font-display border-b border-slate-100 pb-2">Global Settings</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* Jurisdiction, Tax & International Fee Config Section */}
+              <div className="space-y-6">
+                <div className="border-b border-slate-100 pb-3">
+                  <h3 className="text-base font-bold text-slate-900 font-display">Jurisdiction & Tax Configuration</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Configure tax rules, international processing fees, and home country ISO settings.</p>
+                </div>
+
+                {/* Tax Applicability Mode */}
+                <div className="space-y-3">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Tax Applicability Mode</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'domestic_only'
+                      ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs">Domestic (India) Only</span>
+                        <input
+                          type="radio"
+                          name="tax_mode"
+                          value="domestic_only"
+                          checked={pricing.tax_mode === 'domestic_only'}
+                          onChange={() => setPricing({ ...pricing, tax_mode: 'domestic_only' })}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500/20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-500 leading-normal">
+                        Apply tax rate to domestic buyers only. International exports are 0% tax exempt.
+                      </span>
+                    </label>
+
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'all'
+                      ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs">All Transactions</span>
+                        <input
+                          type="radio"
+                          name="tax_mode"
+                          value="all"
+                          checked={pricing.tax_mode === 'all'}
+                          onChange={() => setPricing({ ...pricing, tax_mode: 'all' })}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500/20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-500 leading-normal">
+                        Apply standard tax rate globally to all buyers regardless of location.
+                      </span>
+                    </label>
+
+                    <label className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${pricing.tax_mode === 'per_country'
+                      ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 text-blue-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs">Per-Country Rates</span>
+                        <input
+                          type="radio"
+                          name="tax_mode"
+                          value="per_country"
+                          checked={pricing.tax_mode === 'per_country'}
+                          onChange={() => setPricing({ ...pricing, tax_mode: 'per_country' })}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500/20"
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-500 leading-normal">
+                        Apply custom tax rates configured individually per country ISO code.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tax Rate, Intl Fee %, Domestic Country inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Global Tax Rate (%)</label>
-                    <input 
-                      type="number" min="0" max="100"
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      Default Tax Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
                       value={pricing.tax_percent}
-                      onChange={(e) => setPricing({ ...pricing, tax_percent: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500"
+                      onChange={(e) => setPricing({ ...pricing, tax_percent: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-semibold focus:outline-none focus:border-blue-500 focus:bg-white"
                     />
+                    <span className="text-[10px] text-slate-400 block mt-1">Standard GST/VAT rate (e.g. 18%)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      Intl. Processing Fee (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      step="0.1"
+                      value={pricing.intl_fee_percent}
+                      onChange={(e) => setPricing({ ...pricing, intl_fee_percent: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-semibold focus:outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                    <span className="text-[10px] text-slate-400 block mt-1">Cross-border gateway fee (e.g. 3.0%)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                      Domestic Country ISO Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={2}
+                      value={pricing.domestic_country}
+                      onChange={(e) => setPricing({ ...pricing, domestic_country: e.target.value.toUpperCase() })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-semibold uppercase focus:outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                    <span className="text-[10px] text-slate-400 block mt-1">Home country ISO code (e.g. IN)</span>
                   </div>
                 </div>
               </div>
@@ -1501,7 +2196,7 @@ export default function AdminConsole() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Android (Play Store URL)</label>
-                    <input 
+                    <input
                       type="url"
                       value={downloads.android}
                       onChange={(e) => setDownloads({ ...downloads, android: e.target.value })}
@@ -1510,7 +2205,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">macOS (.dmg URL)</label>
-                    <input 
+                    <input
                       type="url"
                       value={downloads.macos}
                       onChange={(e) => setDownloads({ ...downloads, macos: e.target.value })}
@@ -1519,7 +2214,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Windows Installer (.exe URL)</label>
-                    <input 
+                    <input
                       type="url"
                       value={downloads.windows}
                       onChange={(e) => setDownloads({ ...downloads, windows: e.target.value })}
@@ -1529,7 +2224,7 @@ export default function AdminConsole() {
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={saving}
                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs"
@@ -1542,7 +2237,7 @@ export default function AdminConsole() {
           {/* TAB: COUPON MANAGEMENT */}
           {activeTab === 'coupons' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
+
               {/* Create Coupon Box */}
               <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
@@ -1552,7 +2247,7 @@ export default function AdminConsole() {
                 <form onSubmit={handleAddCoupon} className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Coupon Code</label>
-                    <input 
+                    <input
                       type="text"
                       value={newCouponCode}
                       onChange={(e) => setNewCouponCode(e.target.value)}
@@ -1563,7 +2258,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Discount (%)</label>
-                    <input 
+                    <input
                       type="number" min="1" max="100"
                       value={newCouponPercent}
                       onChange={(e) => setNewCouponPercent(parseInt(e.target.value, 10) || 0)}
@@ -1573,7 +2268,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Minimum Order Amount (USD, Optional)</label>
-                    <input 
+                    <input
                       type="number" step="0.01" min="0"
                       value={newCouponMinAmount}
                       onChange={(e) => setNewCouponMinAmount(e.target.value)}
@@ -1605,7 +2300,7 @@ export default function AdminConsole() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Expiry Date (Optional)</label>
-                    <input 
+                    <input
                       type="date"
                       value={newCouponExpiry}
                       onChange={(e) => setNewCouponExpiry(e.target.value)}
@@ -1613,7 +2308,7 @@ export default function AdminConsole() {
                     />
                   </div>
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={saving}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg flex items-center justify-center transition-all cursor-pointer text-sm"
@@ -1661,36 +2356,35 @@ export default function AdminConsole() {
                             <td className="py-3.5 text-slate-650 max-w-[150px] truncate" title={
                               coupon.eligible_plan_ids && coupon.eligible_plan_ids.length > 0
                                 ? coupon.eligible_plan_ids.map((id: string) => {
-                                    const pl = pricing.plans.find((p: any) => p.id === id);
-                                    return pl ? pl.name : id;
-                                  }).join(', ')
+                                  const pl = pricing.plans.find((p: any) => p.id === id);
+                                  return pl ? pl.name : id;
+                                }).join(', ')
                                 : 'All Plans'
                             }>
                               {coupon.eligible_plan_ids && coupon.eligible_plan_ids.length > 0
                                 ? coupon.eligible_plan_ids.map((id: string) => {
-                                    const pl = pricing.plans.find((p: any) => p.id === id);
-                                    return pl ? pl.name : id;
-                                  }).join(', ')
+                                  const pl = pricing.plans.find((p: any) => p.id === id);
+                                  return pl ? pl.name : id;
+                                }).join(', ')
                                 : 'All Plans'}
                             </td>
                             <td className="py-3.5 text-slate-500">
                               {coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString() : 'Never'}
                             </td>
                             <td className="py-3.5">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${coupon.active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                }`}>
                                 {coupon.active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
                             <td className="py-3.5 text-right space-x-2 whitespace-nowrap">
-                              <button 
+                              <button
                                 onClick={() => toggleCoupon(coupon.code, coupon.active)}
                                 className="text-xs font-semibold text-slate-500 hover:text-slate-800 border border-slate-200 px-2 py-1 rounded hover:bg-slate-50"
                               >
                                 Toggle
                               </button>
-                              <button 
+                              <button
                                 onClick={() => deleteCoupon(coupon.code)}
                                 className="text-xs font-semibold text-rose-600 hover:text-rose-500 border border-rose-100 px-2 py-1 rounded hover:bg-rose-50"
                               >
@@ -1793,7 +2487,7 @@ export default function AdminConsole() {
                   <div className="bg-white border border-slate-200 rounded-3xl p-7 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
                     <h3 className="text-lg font-bold text-slate-900 mb-2 font-display">Generate School Access Code</h3>
                     <p className="text-slate-500 text-xs mb-6">Create a code students can redeem to claim a seat on your license.</p>
-                    
+
                     <form onSubmit={handleCreateAccessCode} className="space-y-4">
                       <div>
                         <label className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">Access Code text</label>
@@ -1899,7 +2593,7 @@ export default function AdminConsole() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                
+
                 {/* BOARDS PANEL */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
                   <div className="space-y-4">
@@ -2097,8 +2791,8 @@ export default function AdminConsole() {
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="text-[10px] text-slate-400 font-mono">slug: {ct.slug}</span>
                                   {ct.color_hex && (
-                                    <span 
-                                      className="w-2 h-2 rounded-full inline-block" 
+                                    <span
+                                      className="w-2 h-2 rounded-full inline-block"
                                       style={{ backgroundColor: ct.color_hex }}
                                       title={ct.color_hex}
                                     />
@@ -2306,8 +3000,8 @@ export default function AdminConsole() {
                   ) : (
                     <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1">
                       {activeNoteContentTypes.map((act) => (
-                        <div 
-                          key={act.id} 
+                        <div
+                          key={act.id}
                           className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-colors"
                           style={{
                             backgroundColor: act.content_types?.color_hex ? `${act.content_types.color_hex}15` : '#f1f5f9',
@@ -2332,9 +3026,9 @@ export default function AdminConsole() {
                 {/* Form to Assign New Tag combo */}
                 <form onSubmit={handleLinkNoteTaxonomy} className="space-y-4 border-t border-slate-150 pt-4">
                   <h4 className="text-[10px] font-extrabold text-slate-455 uppercase tracking-wider">Add Classification Category</h4>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    
+
                     {/* BOARDS LIST */}
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
                       <div className="flex justify-between items-center border-b border-slate-250 pb-1">
@@ -2507,7 +3201,400 @@ export default function AdminConsole() {
             </div>
           )}
 
+          {/* EDIT NOTE MODAL */}
+          {isEditNoteModalOpen && editingNoteData && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 font-display">
+                    <Edit className="w-5 h-5 text-blue-600" />
+                    <span>Edit Lesson Details</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditNoteModalOpen(false);
+                      setEditingNoteData(null);
+                    }}
+                    className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveNoteEdit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Lesson Title
+                    </label>
+                    <input
+                      type="text"
+                      value={editingNoteData.title}
+                      onChange={(e) => setEditingNoteData({ ...editingNoteData, title: e.target.value })}
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editingNoteData.description || ''}
+                      onChange={(e) => setEditingNoteData({ ...editingNoteData, description: e.target.value })}
+                      rows={3}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 resize-none font-medium"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2.5 bg-blue-50/50 p-3.5 rounded-xl border border-blue-150">
+                    <input
+                      type="checkbox"
+                      id="editIsDemo"
+                      checked={editingNoteData.is_demo}
+                      onChange={(e) => setEditingNoteData({ ...editingNoteData, is_demo: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                    />
+                    <label htmlFor="editIsDemo" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                      Public Free Demo Lesson (Experience Zone)
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditNoteModalOpen(false);
+                        setEditingNoteData(null);
+                      }}
+                      disabled={isUpdatingNote}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUpdatingNote || !editingNoteData.title.trim()}
+                      className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-blue-300"
+                    >
+                      {isUpdatingNote ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Save Changes</span>}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* DELETE NOTE CONFIRMATION MODAL */}
+          {isDeleteNoteModalOpen && deletingNote && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-slate-900 font-display">Delete Lesson</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Are you sure you want to delete <span className="font-bold text-slate-800">"{deletingNote.title}"</span>? This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDeleteNoteModalOpen(false);
+                      setDeletingNote(null);
+                    }}
+                    disabled={isDeletingNote}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDeleteNote}
+                    disabled={isDeletingNote}
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-rose-300"
+                  >
+                    {isDeletingNote ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Delete Lesson</span>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BULK DELETE NOTES CONFIRMATION MODAL */}
+          {isBulkDeleteModalOpen && selectedNoteIds.length > 0 && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-slate-900 font-display">Bulk Delete Lectures</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Are you sure you want to permanently delete <span className="font-bold text-slate-800">{selectedNoteIds.length} interactive lectures</span>?
+                    </p>
+                    <p className="text-[11px] text-rose-600 font-semibold mt-1">
+                      This action will delete all selected records and clean up associated storage files. It cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-3 max-h-36 overflow-y-auto space-y-1 border border-slate-200/60">
+                  {notes
+                    .filter(n => selectedNoteIds.includes(n.id))
+                    .map(n => (
+                      <div key={n.id} className="text-xs text-slate-700 font-medium truncate flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span className="truncate">{n.title}</span>
+                      </div>
+                    ))}
+                  {selectedNoteIds.length > notes.filter(n => selectedNoteIds.includes(n.id)).length && (
+                    <div className="text-[11px] text-slate-400 italic">
+                      +{selectedNoteIds.length - notes.filter(n => selectedNoteIds.includes(n.id)).length} selected on other pages
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(false)}
+                    disabled={isBulkDeleting}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmBulkDeleteNotes}
+                    disabled={isBulkDeleting}
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-rose-300"
+                  >
+                    {isBulkDeleting ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <span>Delete {selectedNoteIds.length} Lectures</span>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
+
+        {/* TAB: SUPPORT TICKETS (Super Admin Only) */}
+        {role === 'super_admin' && activeTab === 'tickets' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 font-display">Support Tickets</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Messages submitted via the contact form.</p>
+                </div>
+                {/* Status filter pills */}
+                <div className="flex flex-wrap gap-2">
+                  {(['all', 'open', 'in_progress', 'resolved'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setTicketFilter(f)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${ticketFilter === f
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
+                        }`}
+                    >
+                      {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {tickets.filter(t => ticketFilter === 'all' || t.status === ticketFilter).length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
+                <FileText className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 text-sm font-semibold">No tickets found.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tickets
+                  .filter(t => ticketFilter === 'all' || t.status === ticketFilter)
+                  .map((ticket) => (
+                    <div key={ticket.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">{ticket.ticket_ref}</span>
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${ticket.status === 'open'
+                              ? 'bg-rose-50 text-rose-600 border-rose-200'
+                              : ticket.status === 'in_progress'
+                                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                              }`}>
+                              {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold">
+                              {new Date(ticket.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-900 text-sm">{ticket.subject}</p>
+                          <p className="text-xs text-slate-500 font-semibold">{ticket.name} &bull; {ticket.email}</p>
+                          <p className="text-sm text-slate-600 leading-relaxed mt-2 line-clamp-3">{ticket.message}</p>
+
+                          {/* Show previous admin reply if present */}
+                          {ticket.admin_notes && (
+                            <div className="mt-3 bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs space-y-1">
+                              <span className="font-bold text-blue-700 uppercase tracking-wider text-[10px]">Admin Reply Sent</span>
+                              <p className="text-slate-700 leading-relaxed">{ticket.admin_notes}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (replyingTicketId === ticket.id) {
+                                setReplyingTicketId(null);
+                                setReplyMessageText('');
+                              } else {
+                                setReplyingTicketId(ticket.id);
+                                setReplyMessageText('');
+                              }
+                            }}
+                            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>{replyingTicketId === ticket.id ? 'Cancel Reply' : 'Reply via Email'}</span>
+                          </button>
+
+                          {ticket.status !== 'in_progress' && (
+                            <button
+                              type="button"
+                              disabled={ticketUpdating === ticket.id}
+                              onClick={async () => {
+                                setTicketUpdating(ticket.id);
+                                await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ status: 'in_progress' }),
+                                });
+                                setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'in_progress' } : t));
+                                setTicketUpdating(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              Mark In Progress
+                            </button>
+                          )}
+                          {ticket.status !== 'resolved' && (
+                            <button
+                              type="button"
+                              disabled={ticketUpdating === ticket.id}
+                              onClick={async () => {
+                                setTicketUpdating(ticket.id);
+                                await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ status: 'resolved' }),
+                                });
+                                setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'resolved', resolved_at: new Date().toISOString() } : t));
+                                setTicketUpdating(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              {ticketUpdating === ticket.id ? 'Saving...' : 'Mark Resolved'}
+                            </button>
+                          )}
+                          {ticket.status === 'resolved' && (
+                            <button
+                              type="button"
+                              disabled={ticketUpdating === ticket.id}
+                              onClick={async () => {
+                                setTicketUpdating(ticket.id);
+                                await fetch(`/api/admin/tickets/${ticket.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ status: 'open' }),
+                                });
+                                setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: 'open', resolved_at: null } : t));
+                                setTicketUpdating(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              Reopen
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expandable Reply Form */}
+                      {replyingTicketId === ticket.id && (
+                        <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 bg-slate-50/50 p-4 rounded-xl">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-700">Reply to <span className="text-blue-600 font-semibold">{ticket.email}</span></span>
+                            <span className="text-[10px] text-slate-400 font-mono">Ref: {ticket.ticket_ref}</span>
+                          </div>
+                          <textarea
+                            rows={3}
+                            value={replyMessageText}
+                            onChange={(e) => setReplyMessageText(e.target.value)}
+                            placeholder={`Type your response to ${ticket.name}...`}
+                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { setReplyingTicketId(null); setReplyMessageText(''); }}
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isSendingReply || !replyMessageText.trim()}
+                              onClick={async () => {
+                                if (!replyMessageText.trim()) return;
+                                setIsSendingReply(true);
+                                try {
+                                  const res = await fetch(`/api/admin/tickets/${ticket.id}/reply`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ replyMessage: replyMessageText }),
+                                  });
+                                  if (res.ok) {
+                                    setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, admin_notes: replyMessageText, status: 'resolved' } : t));
+                                    setReplyingTicketId(null);
+                                    setReplyMessageText('');
+                                    setMessage({ type: 'success', text: `Email reply sent to ${ticket.email} and marked resolved!` });
+                                  } else {
+                                    setMessage({ type: 'error', text: 'Failed to send email reply.' });
+                                  }
+                                } catch {
+                                  setMessage({ type: 'error', text: 'Failed to send email reply.' });
+                                } finally {
+                                  setIsSendingReply(false);
+                                }
+                              }}
+                              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                            >
+                              {isSendingReply ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                              <span>Send Email &amp; Mark Resolved</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <footer className="w-full text-center text-xs text-slate-400 mt-16 pt-4 border-t border-slate-200/50">

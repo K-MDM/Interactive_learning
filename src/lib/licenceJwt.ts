@@ -11,7 +11,7 @@ export interface LicenceJwtPayload {
 }
 
 /**
- * Generates a clean, readable licence key format: KEEL-XXXX-XXXX
+ * Generates a clean, readable licence key format: KEEEL-XXXX-XXXX
  * Excludes easily confused characters (I, O, 0, 1)
  */
 export function generateLicenceKey(): string {
@@ -25,7 +25,7 @@ export function generateLicenceKey(): string {
     part2 += chars[randomBytes[i + 4] % chars.length];
   }
 
-  return `KEEL-${part1}-${part2}`;
+  return `KEEEL-${part1}-${part2}`;
 }
 
 /**

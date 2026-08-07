@@ -5,15 +5,17 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { Sparkles, ArrowRight, ArrowLeft, BookOpen } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import SceneBackdrop from '@/components/three/SceneBackdrop';
+import Reveal from '@/components/motion/Reveal';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Explore Interactive K-12 Subject Simulations | Keeelai Demos',
-  description: 'Try our free virtual simulations and interactive classrooms across all subjects. Learn by doing with hands-on simulator controls.',
+  title: 'Explore Interactive K-12 Experience Zone | Keeelai',
+  description: 'Try our free virtual simulations and interactive experience zones across Maths, Science, Languages, and Humanities. Learn by doing with hands-on controls.',
 };
 
-export default async function DemoLessonsPage() {
+export default async function ExperienceZonePage() {
   let demoNotes: any[] = [];
   let errorMsg = '';
 
@@ -21,19 +23,28 @@ export default async function DemoLessonsPage() {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('notes')
-      .select('*')
+      .select(`
+        *,
+        note_taxonomy (
+          subject_id,
+          subjects ( id, name, slug, icon_emoji )
+        )
+      `)
       .eq('is_demo', true)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     demoNotes = data || [];
   } catch (err: any) {
-    console.error('Failed to load demo lessons:', err);
-    errorMsg = 'Could not load demo lectures. Please try again later.';
+    console.error('Failed to load experience zone notes:', err);
+    errorMsg = 'Could not load experience zone modules. Please try again later.';
   }
 
+
+
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
+    <div className="min-h-screen text-[#0F172A] flex flex-col font-sans relative overflow-x-hidden">
+      <SceneBackdrop density={10} veil={0.2} />
       <Navbar dark={false} />
 
       <script
@@ -52,7 +63,7 @@ export default async function DemoLessonsPage() {
               {
                 "@type": "ListItem",
                 "position": 2,
-                "name": "Demos",
+                "name": "Experience Zone",
                 "item": "https://keeelai.com/demo"
               }
             ]
@@ -78,21 +89,21 @@ export default async function DemoLessonsPage() {
         </div>
 
         {/* Hero Section */}
-        <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-200 text-blue-750 text-blue-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 animate-pulse text-blue-600" />
-            <span>Simulation Player Demos</span>
+        <Reveal from="up" className="text-center space-y-4 max-w-2xl mx-auto">
+          <div className="inline-flex items-center space-x-2 bg-white/70 backdrop-blur border border-candy-blue/25 text-candy-blue px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 animate-pulse" />
+            <span>K-12 Experience Zone</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight font-display leading-[1.15]">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight font-display leading-[1.1]">
             Explore the{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
-              Interactive Simulator
+            <span className="text-gradient-fun">
+              Interactive Experience Zone
             </span>
           </h1>
           <p className="text-slate-600 text-base leading-relaxed font-semibold">
-            Explore virtual experiments and classroom visualizers directly in your browser. Experience how hands-on animations and interactive controls bring science, history, geography, and grammar concepts to life.
+            Try our hands-on subject experience hubs directly in your browser. Touch, adjust variables, and see abstract K-12 concepts react in real-time.
           </p>
-        </div>
+        </Reveal>
 
         {/* Content list */}
         {errorMsg ? (
@@ -104,63 +115,75 @@ export default async function DemoLessonsPage() {
             <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
               <BookOpen className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">No Demos Available</h2>
-            <p className="text-slate-605 text-sm leading-relaxed font-semibold">
-              We are currently setting up the free simulations. Check back shortly to try our interactive classrooms.
+            <h2 className="text-xl font-bold text-slate-900">Experience Zone Opening Soon</h2>
+            <p className="text-slate-600 text-sm leading-relaxed font-semibold">
+              We are setting up interactive simulations for Maths, Science, and Languages. Check back shortly to try our interactive classrooms.
             </p>
             <div className="pt-2">
               <Link
                 href="/checkout"
                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all"
               >
-                View Premium Pricing
+                View Pricing Plans
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {demoNotes.map((note: any) => (
-              <div
-                key={note.id}
-                className="bg-white border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/[0.02] transition-all duration-300 group relative overflow-hidden"
-              >
-                {/* Glowing bottom gradient on hover */}
-                <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-blue-600 to-teal-500 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+          <Reveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {demoNotes.map((note: any) => {
+              // Read subject name directly from DB taxonomy — no keyword guessing
+              const subjectName: string = (note.note_taxonomy || [])
+                .map((t: any) => t.subjects?.name)
+                .filter(Boolean)[0] ?? '';
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-start">
-                    <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                      Interactive Simulation
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                      Free Trial
-                    </span>
+              const buttonLabel = subjectName
+                ? `Experience ${subjectName}`
+                : 'Experience Future';
+              const colorClass = 'from-blue-600 to-indigo-600';
+
+              return (
+                <div
+                  key={note.id}
+                  className="bg-white/85 backdrop-blur-sm border border-slate-200 rounded-3xl p-7 flex flex-col justify-between hover:border-candy-blue/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-candy-blue/10 transition-all duration-300 group relative overflow-hidden"
+                >
+                  {/* Glowing bottom gradient on hover */}
+                  <div className={`absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r ${colorClass} transform translate-y-full group-hover:translate-y-0 transition-transform duration-300`} />
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Interactive Simulation
+                      </span>
+                      <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">
+                        Free Experience
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-display line-clamp-2">
+                      {note.title}
+                    </h3>
+
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-4 min-h-[80px] font-medium">
+                      {note.description || 'Explore virtual simulations and hands-on experiments. Adjust variables to see concepts react in real-time.'}
+                    </p>
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-650 transition-colors font-display line-clamp-2">
-                    {note.title}
-                  </h3>
-
-                  <p className="text-slate-600 text-sm leading-relaxed line-clamp-4 min-h-[80px] font-medium">
-                    {note.description || 'Explore virtual simulations and hands-on experiments. Adjust variables to see science laws react in real-time.'}
-                  </p>
+                  <div className="pt-6 border-t border-slate-100 mt-8 flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Public Access</span>
+                    <a
+                      href={`/webview/notes/${note.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
+                    >
+                      <span>{buttonLabel}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
-
-                <div className="pt-6 border-t border-slate-100 mt-8 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Public Access</span>
-                  <a
-                    href={`/webview/notes/${note.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
-                  >
-                    <span>Launch Webview</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
+              );
+            })}
+          </Reveal>
         )}
 
       </main>

@@ -1,5 +1,5 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
-import { getUsdToInrRate } from '@/lib/exchangeRate';
+import { getCountryFromIp, resolveJurisdictionPricing } from '@/lib/geo';
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 
@@ -33,9 +33,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No plan selected' }, { status: 400 });
     }
 
+    // 1. Detect User IP Country
+    const countryCode = await getCountryFromIp(request);
+
     const adminClient = createAdminClient();
 
-    // 1. Fetch dynamic pricing from plans table
+    // 2. Fetch Plan
     const { data: plan, error: planError } = await adminClient
       .from('plans')
       .select('*')
@@ -49,12 +52,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const basePlanPriceUsd = Number(plan.price_usd);
-    const planDiscountPercent = plan.discount_percent || 0;
-    let priceUsd = basePlanPriceUsd * (1 - planDiscountPercent / 100);
-
-    // Fetch tax rate from settings pricing
-    let taxPercent = 18;
+    // 3. Fetch Pricing & Tax Settings
+    let pricingSettings: any = {};
     const { data: pricingSetting } = await adminClient
       .from('settings')
       .select('value')
@@ -62,10 +61,10 @@ export async function POST(request: Request) {
       .single();
 
     if (pricingSetting && pricingSetting.value) {
-      taxPercent = pricingSetting.value.tax_percent || 18;
+      pricingSettings = pricingSetting.value;
     }
 
-    // 3. Apply Coupon Code if valid
+    // 4. Apply Coupon Code if valid
     let couponDiscountPercent = 0;
     if (couponCode) {
       const { data: coupon } = await adminClient
@@ -83,15 +82,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Coupon code has expired' }, { status: 400 });
       }
 
-      // Validate minimum order amount
-      if (coupon.min_order_amount !== null && coupon.min_order_amount !== undefined) {
-        if (priceUsd < coupon.min_order_amount) {
-          return NextResponse.json({
-            error: `Minimum order of $${Number(coupon.min_order_amount).toFixed(2)} USD required for this coupon`
-          }, { status: 400 });
-        }
-      }
-
       // Validate eligible plans
       if (coupon.eligible_plan_ids && Array.isArray(coupon.eligible_plan_ids) && coupon.eligible_plan_ids.length > 0) {
         if (!coupon.eligible_plan_ids.includes(planId)) {
@@ -99,25 +89,30 @@ export async function POST(request: Request) {
         }
       }
 
-      couponDiscountPercent = coupon.discount_percent;
-      priceUsd = priceUsd * (1 - couponDiscountPercent / 100);
+      // Validate min order amount
+      if (coupon.min_order_amount !== null && coupon.min_order_amount !== undefined) {
+        const baseRes = resolveJurisdictionPricing(plan, countryCode, pricingSettings, 0, currency);
+        const minAmount = Number(coupon.min_order_amount);
+        let minRequired = minAmount;
+        if (baseRes.currency === 'INR') {
+          minRequired = minAmount <= 100 ? minAmount * 85 : minAmount;
+        }
+        if (baseRes.discountedPrice < minRequired) {
+          return NextResponse.json({ error: 'Minimum order amount for coupon not met' }, { status: 400 });
+        }
+      }
+
+      couponDiscountPercent = Number(coupon.discount_percent || 0);
     }
 
-    // 4. Determine Currency conversion
-    let targetCurrency = currency === 'INR' ? 'INR' : 'USD';
-    let finalBaseAmount = priceUsd;
+    // 5. Resolve Jurisdiction Pricing & Tax
+    const resolved = resolveJurisdictionPricing(plan, countryCode, pricingSettings, couponDiscountPercent, currency);
 
-    if (targetCurrency === 'INR') {
-      const conversionRate = await getUsdToInrRate();
-      finalBaseAmount = priceUsd * conversionRate;
-    }
-
-    // 5. Calculate Tax (Globally flat)
-    const taxAmount = finalBaseAmount * (taxPercent / 100);
-    const totalAmount = finalBaseAmount + taxAmount;
+    let targetCurrency = resolved.currency;
+    let finalAmount = resolved.total;
 
     // Smallest currency unit (paise for INR, cents for USD)
-    const finalAmountInSmallestUnit = Math.round(totalAmount * 100);
+    let finalAmountInSmallestUnit = Math.round(finalAmount * 100);
     const receipt = `rcpt_${planId}_${user.id.substring(0, 8)}_${Date.now()}`;
 
     const options: any = {
@@ -128,9 +123,14 @@ export async function POST(request: Request) {
         userId: user.id,
         planId,
         couponCode: couponCode || '',
-        taxPercent: taxPercent.toString(),
-        taxAmount: taxAmount.toFixed(2),
-        basePriceUsd: basePlanPriceUsd.toString(),
+        countryCode: resolved.countryCode,
+        isDomestic: resolved.isDomestic.toString(),
+        taxMode: resolved.taxMode,
+        taxPercent: resolved.taxPercent.toString(),
+        taxAmount: resolved.taxAmount.toFixed(2),
+        intlFeePercent: resolved.intlFeePercent.toString(),
+        intlFeeAmount: resolved.intlFeeAmount.toFixed(2),
+        basePrice: resolved.basePrice.toString(),
         currency: targetCurrency,
       },
     };
@@ -146,16 +146,12 @@ export async function POST(request: Request) {
       );
 
       if (targetCurrency === 'USD') {
+        // Fallback to INR at ~85 INR per USD if USD currency is rejected by Razorpay account settings
         targetCurrency = 'INR';
-        const conversionRate = await getUsdToInrRate();
-        const fallbackBaseAmount = priceUsd * conversionRate;
-        const fallbackTaxAmount = fallbackBaseAmount * (taxPercent / 100);
-        const fallbackTotal = fallbackBaseAmount + fallbackTaxAmount;
-
-        options.amount = Math.round(fallbackTotal * 100);
+        const fallbackInrTotal = finalAmount * 85;
+        options.amount = Math.round(fallbackInrTotal * 100);
         options.currency = 'INR';
         options.notes.currency = 'INR';
-        options.notes.taxAmount = fallbackTaxAmount.toFixed(2);
 
         order = await getRazorpay().orders.create(options);
       } else {
@@ -167,6 +163,7 @@ export async function POST(request: Request) {
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
+      resolvedPricing: resolved,
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '',
       user: {
         email: user.email,

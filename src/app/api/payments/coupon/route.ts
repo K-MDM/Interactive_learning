@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     }
 
     const supabase = await createClient();
-    
+
     // Fetch coupon from DB
     const { data: coupon, error } = await supabase
       .from('coupons')
@@ -35,14 +35,31 @@ export async function GET(request: Request) {
 
     const planId = searchParams.get('planId')?.trim();
     const price = searchParams.get('price') ? parseFloat(searchParams.get('price') || '') : null;
+    const currency = searchParams.get('currency')?.toUpperCase() || 'USD';
 
     // Check minimum order amount
     if (coupon.min_order_amount !== null && coupon.min_order_amount !== undefined) {
-      if (price === null || isNaN(price) || price < coupon.min_order_amount) {
-        return NextResponse.json({
-          valid: false,
-          error: `Minimum order of $${Number(coupon.min_order_amount).toFixed(2)} USD required for this coupon`
-        });
+      const minAmount = Number(coupon.min_order_amount);
+      if (price === null || isNaN(price)) {
+        return NextResponse.json({ valid: false, error: 'Invalid item price' });
+      }
+
+      if (currency === 'INR') {
+        // If min_order_amount in DB is expressed as USD (e.g. <= 100 USD), scale to INR equivalent (~85 INR per USD)
+        const minAmountInr = minAmount <= 100 ? minAmount * 85 : minAmount;
+        if (price < minAmountInr) {
+          return NextResponse.json({
+            valid: false,
+            error: `Minimum order of ₹${minAmountInr.toFixed(0)} INR required for this coupon`
+          });
+        }
+      } else {
+        if (price < minAmount) {
+          return NextResponse.json({
+            valid: false,
+            error: `Minimum order of $${minAmount.toFixed(2)} USD required for this coupon`
+          });
+        }
       }
     }
 

@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { generateLicenceKey } from '@/lib/licenceJwt';
+import { sendLicenceEmail } from '@/lib/sendLicenceEmail';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
@@ -81,6 +82,16 @@ export async function POST(request: Request) {
         { error: 'Payment verified, but licence generation failed' },
         { status: 500 }
       );
+    }
+
+    // Send automatic email with Licence Key & QR code to the purchaser
+    if (user.email) {
+      sendLicenceEmail({
+        toEmail: user.email,
+        licenceKey: licenceKey,
+        durationMonths: durationMonths,
+        userName: user.user_metadata?.full_name || user.email.split('@')[0] || 'Learner',
+      }).catch((err) => console.error('Failed to dispatch licence email:', err));
     }
 
     // Log creation activity

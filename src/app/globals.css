@@ -1,13 +1,48 @@
 @import "tailwindcss";
 
+/* ============================================================
+   KEEEL AI — Playful & Colorful design tokens
+   (primitive -> semantic layering, in the spirit of a design system)
+   ============================================================ */
 :root {
   --background: #FAF9F6;
   --foreground: #0F172A;
+
+  /* Primitive playful palette */
+  --candy-blue: #4F7CFF;
+  --candy-indigo: #8B5CF6;
+  --candy-teal: #16C79A;
+  --candy-mint: #2BC8B7;
+  --candy-yellow: #FFC93C;
+  --candy-coral: #FF6B9D;
+  --candy-orange: #FF8A3D;
+  --candy-sky: #38BDF8;
+
+  /* Semantic */
+  --brand: var(--candy-blue);
+  --brand-accent: var(--candy-indigo);
+  --brand-fun: var(--candy-coral);
+  --ink: #0F172A;
+  --ink-soft: #475569;
+}
+
+/* Colors as literal values so Tailwind v4 reliably generates
+   bg-/text-/border-/shadow-candy-* utilities (incl. /opacity variants). */
+@theme {
+  --color-candy-blue: #4F7CFF;
+  --color-candy-indigo: #8B5CF6;
+  --color-candy-teal: #16C79A;
+  --color-candy-mint: #2BC8B7;
+  --color-candy-yellow: #FFC93C;
+  --color-candy-coral: #FF6B9D;
+  --color-candy-orange: #FF8A3D;
+  --color-candy-sky: #38BDF8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-body), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-display), "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -26,28 +61,101 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-12px) rotate(0.5deg);
-  }
+/* ============================================================
+   Lenis smooth scroll
+   ============================================================ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+/* ============================================================
+   Reusable helpers
+   ============================================================ */
+
+/* Colorful text gradient */
+.text-gradient-fun {
+  background-image: linear-gradient(
+    100deg,
+    var(--candy-blue) 0%,
+    var(--candy-indigo) 35%,
+    var(--candy-coral) 65%,
+    var(--candy-orange) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: gradient-pan 8s linear infinite;
 }
+
+@keyframes gradient-pan {
+  to { background-position: 200% center; }
+}
+
+/* Animated colorful mesh backdrop (behind the 3D canvas fallback) */
+.mesh-bg {
+  background:
+    radial-gradient(40rem 40rem at 12% 18%, rgba(79, 124, 255, 0.16), transparent 60%),
+    radial-gradient(36rem 36rem at 88% 12%, rgba(139, 92, 246, 0.14), transparent 60%),
+    radial-gradient(34rem 34rem at 78% 82%, rgba(255, 107, 157, 0.13), transparent 60%),
+    radial-gradient(30rem 30rem at 18% 86%, rgba(22, 199, 154, 0.13), transparent 60%);
+}
+
+/* GSAP reveal base state (prevents flash before JS mounts) */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(28px);
+  will-change: transform, opacity;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(0.5deg); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-18px); }
+}
+.animate-float-slow { animation: float-slow 9s ease-in-out infinite; }
 
 @keyframes pulse-slow {
-  0%, 100% {
-    opacity: 0.9;
-  }
-  50% {
-    opacity: 0.6;
-  }
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.6; }
 }
+.animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
 
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
+@keyframes blob {
+  0%, 100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
+  50% { border-radius: 58% 42% 37% 63% / 56% 59% 41% 44%; }
+}
+.animate-blob { animation: blob 12s ease-in-out infinite; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient-fun,
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse-slow,
+  .animate-blob {
+    animation: none !important;
+  }
+  .reveal-init {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
