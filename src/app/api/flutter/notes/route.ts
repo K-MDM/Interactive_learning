@@ -23,15 +23,15 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const boardId       = searchParams.get('board_id');
-    const classId       = searchParams.get('class_id');
-    const subjectId     = searchParams.get('subject_id');
+    const boardId = searchParams.get('board_id');
+    const classId = searchParams.get('class_id');
+    const subjectId = searchParams.get('subject_id');
     const contentTypeId = searchParams.get('content_type_id');
-    const search        = searchParams.get('search')?.trim();
-    const isDemo        = searchParams.get('is_demo');
-    const page          = Math.max(1, parseInt(searchParams.get('page')  || '1'));
-    const limit         = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
-    const offset        = (page - 1) * limit;
+    const search = searchParams.get('search')?.trim();
+    const isDemo = searchParams.get('is_demo');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const offset = (page - 1) * limit;
 
     const adminClient = createAdminClient();
 
@@ -81,12 +81,26 @@ export async function GET(request: Request) {
       query = query.eq('note_content_types.content_type_id', contentTypeId);
     }
 
-    // Full-text search via tsvector
+    // Full-text & prefix search
     if (search && search.length > 0) {
-      query = query.textSearch('search_vector', search, {
-        type: 'websearch',
-        config: 'english',
-      });
+      const cleanSearch = search.replace(/['"%]/g, '');
+      if (cleanSearch.length > 0) {
+        if (cleanSearch.length < 5) {
+          // For short queries (e.g. 3-4 chars like 'phy', 'cell', 'chem'), ILIKE ensures partial/prefix matching
+          query = query.or(`title.ilike.%${cleanSearch}%,description.ilike.%${cleanSearch}%`);
+        } else {
+          // For longer queries, format words with prefix wildcards (e.g. "physics:*")
+          const formattedTsQuery = cleanSearch
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((term) => `${term.replace(/[^a-zA-Z0-9]/g, '')}:*`)
+            .join(' & ');
+
+          query = query.textSearch('search_vector', formattedTsQuery, {
+            config: 'english',
+          });
+        }
+      }
     }
 
     // Pagination
@@ -99,7 +113,7 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      
+
       // 1. Try Custom Licence JWT
       const licencePayload = verifyLicenceToken(token);
       if (licencePayload) {
@@ -154,24 +168,24 @@ export async function GET(request: Request) {
     const formattedNotes = (notes || []).map((note: any) => {
       const isLocked = !note.is_demo && !isPremium;
       return {
-        id:          note.id,
-        title:       note.title,
+        id: note.id,
+        title: note.title,
         description: note.description || '',
-        is_demo:     note.is_demo,
-        is_locked:   isLocked,
-        play_url:    isLocked ? null : `/webview/notes/${note.id}`,
-        created_at:  note.created_at,
-        taxonomy:    (note.note_taxonomy || []).map((t: any) => ({
-          board:   t.boards   ? { id: t.boards.id,   name: t.boards.name,   slug: t.boards.slug }   : null,
-          class:   t.classes  ? { id: t.classes.id,  name: t.classes.name,  slug: t.classes.slug }  : null,
+        is_demo: note.is_demo,
+        is_locked: isLocked,
+        play_url: isLocked ? null : `/webview/notes/${note.id}`,
+        created_at: note.created_at,
+        taxonomy: (note.note_taxonomy || []).map((t: any) => ({
+          board: t.boards ? { id: t.boards.id, name: t.boards.name, slug: t.boards.slug } : null,
+          class: t.classes ? { id: t.classes.id, name: t.classes.name, slug: t.classes.slug } : null,
           subject: t.subjects ? { id: t.subjects.id, name: t.subjects.name, slug: t.subjects.slug, icon_emoji: t.subjects.icon_emoji } : null,
         })),
         content_types: (note.note_content_types || []).map((ct: any) => ({
-          id:         ct.content_types?.id,
-          name:       ct.content_types?.name,
-          slug:       ct.content_types?.slug,
+          id: ct.content_types?.id,
+          name: ct.content_types?.name,
+          slug: ct.content_types?.slug,
           icon_emoji: ct.content_types?.icon_emoji,
-          color_hex:  ct.content_types?.color_hex,
+          color_hex: ct.content_types?.color_hex,
         })).filter((x: any) => x.id),
       };
     });
