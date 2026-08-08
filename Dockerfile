@@ -37,6 +37,7 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV NEXT_OUTPUT=standalone
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 # Next.js embeds NEXT_PUBLIC_ variables into static JS during build time
 ARG NEXT_PUBLIC_SUPABASE_URL
