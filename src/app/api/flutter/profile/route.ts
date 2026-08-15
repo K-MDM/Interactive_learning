@@ -44,6 +44,7 @@ export async function GET(request: Request) {
           key,
           duration_months,
           status,
+          is_super,
           activated_at,
           expires_at,
           last_deactivated_at,
@@ -61,11 +62,14 @@ export async function GET(request: Request) {
       const isExpired = licence.status === 'expired' || (licence.expires_at && new Date(licence.expires_at) <= now);
       const subscriptionStatus = (!isExpired && licence.status === 'active') ? 'active' : 'expired';
 
-      // Calculate 180-day deactivation rate-limit rule
+      // Calculate deactivation rate-limit rule
       let canDeactivate = true;
       let daysUntilAllowed = 0;
 
-      if (licence.last_deactivated_at) {
+      if (licence.is_super) {
+        canDeactivate = true;
+        daysUntilAllowed = 0;
+      } else if (licence.last_deactivated_at) {
         const lastDeact = new Date(licence.last_deactivated_at);
         const diffMs = now.getTime() - lastDeact.getTime();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

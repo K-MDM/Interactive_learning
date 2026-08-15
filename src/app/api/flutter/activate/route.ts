@@ -76,8 +76,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check Active status on a different device
-    if (licence.status === 'active') {
+    // Check Active status on a different device (only for standard 1-device licences)
+    if (licence.status === 'active' && !licence.is_super) {
       if (licence.last_activated_device_id && licence.last_activated_device_id !== device_id) {
         return NextResponse.json(
           { error: 'This licence key is already activated on another device' },
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
     let expiryDate = licence.expires_at ? new Date(licence.expires_at) : null;
 
-    // Handle initial activation
+    // Handle initial activation or super licence multi-activation
     if (licence.status === 'pending') {
       expiryDate = new Date();
       expiryDate.setMonth(expiryDate.getMonth() + (licence.duration_months || 12));
@@ -121,6 +121,27 @@ export async function POST(request: Request) {
           device_id,
           ip: clientIp,
           activated_at: now.toISOString(),
+          is_super: !!licence.is_super,
+        },
+      });
+    } else if (licence.is_super && licence.status === 'active') {
+      // Record latest device activity and log event for super key without mutating expiry
+      await adminClient
+        .from('licences')
+        .update({
+          last_activated_device_id: device_id,
+        })
+        .eq('id', licence.id);
+
+      const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+      await adminClient.from('licence_activity_log').insert({
+        licence_id: licence.id,
+        action: 'activated',
+        metadata: {
+          device_id,
+          ip: clientIp,
+          activated_at: now.toISOString(),
+          is_super: true,
         },
       });
     }

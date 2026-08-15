@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     // 2. Fetch Licence record
     const { data: licence, error: fetchErr } = await adminClient
       .from('licences')
-      .select('id, key, status, last_deactivated_at, last_activated_device_id')
+      .select('id, key, status, last_deactivated_at, last_activated_device_id, is_super')
       .eq('id', licencePayload.licence_id)
       .single();
 
@@ -48,7 +48,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Licence not found' }, { status: 404 });
     }
 
-    // 3. Enforce 180-day Deactivation Rate Limit Policy
+    // 3. Super Licence Handling (Multi-device reviewer keys)
+    if (licence.is_super) {
+      // Audit log entry for device session deactivation
+      await adminClient.from('licence_activity_log').insert({
+        licence_id: licence.id,
+        action: 'deactivated',
+        metadata: {
+          deactivated_at: now.toISOString(),
+          device_id: licencePayload.device_id,
+          is_super: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Device session cleared successfully.',
+      });
+    }
+
+    // 4. Enforce 180-day Deactivation Rate Limit Policy for standard keys
     if (licence.last_deactivated_at) {
       const lastDeact = new Date(licence.last_deactivated_at);
       const diffMs = now.getTime() - lastDeact.getTime();
@@ -66,7 +85,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Update Licence Record -> reset status to pending & record last_deactivated_at
+    // 5. Update Licence Record -> reset status to pending & record last_deactivated_at
     const { error: updateErr } = await adminClient
       .from('licences')
       .update({
@@ -80,7 +99,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
-    // 5. Audit Log Entry
+    // 6. Audit Log Entry
     await adminClient.from('licence_activity_log').insert({
       licence_id: licence.id,
       action: 'deactivated',
