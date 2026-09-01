@@ -8,7 +8,7 @@ import {
   ShieldCheck, BookOpen, Settings, Tag, PlusCircle, Loader,
   Trash2, CheckCircle, AlertTriangle, Link2, ExternalLink,
   Layout, LogOut, DollarSign, Users, FileText, Gift, Plus, Edit, Layers, Mail, Send,
-  Search, Filter, ChevronLeft, ChevronRight, CheckSquare, Square, X, RefreshCw
+  Search, Filter, ChevronLeft, ChevronRight, CheckSquare, Square, X, RefreshCw, Mic
 } from 'lucide-react';
 import LicenceManager from './LicenceManager';
 
@@ -1037,6 +1037,15 @@ export default function AdminConsole() {
 
           {/* Navigation Drawer Menu items */}
           <nav className="space-y-1">
+            {role === 'super_admin' && (
+              <Link
+                href="/admin/pronunciation"
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+              >
+                <Mic className="w-4 h-4" />
+                <span>Pronunciation Studio</span>
+              </Link>
+            )}
             {role === 'super_admin' ? (
               // Super Admin Sidebar Navigation
               [
