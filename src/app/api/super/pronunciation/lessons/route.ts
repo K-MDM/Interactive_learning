@@ -24,6 +24,8 @@ export async function POST(request: Request) {
   const auth = await authenticatePronunciationAdmin();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json();
+  const rawExercises = body.exercises || body.pronunciation_exercises || [];
+  body.exercises = rawExercises;
   const errorMessage = validateLesson(body);
   if (errorMessage) return NextResponse.json({ error: errorMessage }, { status: 400 });
 
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
   }).select().single();
   if (error || !lesson) return NextResponse.json({ error: error?.message || 'Unable to create lesson' }, { status: 500 });
 
-  const exerciseRows = body.exercises.map((exercise: any, index: number) => exerciseInsert(lesson.id, exercise, index));
+  const exerciseRows = rawExercises.map((exercise: any, index: number) => exerciseInsert(lesson.id, exercise, index));
   const { data: exercises, error: exerciseError } = await auth.admin
     .from('pronunciation_exercises')
     .insert(exerciseRows)
@@ -56,6 +58,8 @@ export async function PUT(request: Request) {
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json();
   if (!body.id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+  const rawExercises = body.exercises || body.pronunciation_exercises || [];
+  body.exercises = rawExercises;
   const errorMessage = validateLesson(body);
   if (errorMessage) return NextResponse.json({ error: errorMessage }, { status: 400 });
 
@@ -77,8 +81,16 @@ export async function PUT(request: Request) {
   }).eq('id', body.id).select().single();
   if (error || !lesson) return NextResponse.json({ error: error?.message || 'Unable to update lesson' }, { status: 500 });
 
-  for (let index = 0; index < body.exercises.length; index += 1) {
-    const exercise = body.exercises[index];
+  // Delete removed exercises
+  const incomingIds = new Set(rawExercises.map((ex: any) => ex.id).filter(Boolean));
+  const toDelete = (currentExercises || []).filter((ex) => !incomingIds.has(ex.id)).map((ex) => ex.id);
+  if (toDelete.length > 0) {
+    await auth.admin.from('pronunciation_exercises').delete().in('id', toDelete);
+    await auth.admin.from('pronunciation_translations').delete().eq('entity_type', 'exercise').in('entity_id', toDelete);
+  }
+
+  for (let index = 0; index < rawExercises.length; index += 1) {
+    const exercise = rawExercises[index];
     const existing = exercise.id ? current.get(exercise.id) : null;
     const changed = existing && (
       existing.english_text !== exercise.english_text.trim() ||
@@ -118,12 +130,13 @@ export async function DELETE(request: Request) {
 }
 
 function validateLesson(body: any): string | null {
+  const exercises = body.exercises || body.pronunciation_exercises;
   if (!body.topic_id) return 'topic_id is required';
   if (!nonEmptyString(body.title, 180)) return 'A valid title is required';
   if (!nonEmptyString(body.instructions_en, 2000)) return 'English instructions are required';
-  if (!Array.isArray(body.exercises) || body.exercises.length === 0) return 'At least one exercise is required';
+  if (!Array.isArray(exercises) || exercises.length === 0) return 'At least one exercise is required';
   if (!Array.isArray(body.required_locales) || normalizeLocales(body.required_locales).length === 0) return 'At least one regional language is required';
-  for (const exercise of body.exercises) {
+  for (const exercise of exercises) {
     if (!EXERCISE_TYPES.has(exercise.type)) return 'Invalid exercise type';
     if (!nonEmptyString(exercise.english_text, 5000)) return 'Every exercise requires valid English text';
     if (exercise.type === 'passage' && exercise.segments !== undefined && !Array.isArray(exercise.segments)) return 'Passage segments must be an array';

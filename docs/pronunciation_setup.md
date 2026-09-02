@@ -13,6 +13,17 @@ The migration creates:
 
 Apply the migration before deploying the backend. The API routes expect all of these tables and columns to exist.
 
+### Optional: Seed Starter / Testing Content
+
+To immediately test the pronunciation features in the mobile or web app with ready-to-use lessons and approved translations across all 6 Indian regional languages (`hi-IN`, `pa-IN`, `mr-IN`, `bn-IN`, `ta-IN`, `te-IN`), run:
+
+```sql
+-- Run in Supabase SQL Editor:
+\i supabase_seed_pronunciation.sql
+```
+or paste and execute the contents of [`supabase_seed_pronunciation.sql`](file:///d:/Projects/KEEEL/keeelai-platform/supabase_seed_pronunciation.sql).
+
+
 ## 2. Configure translation
 
 Set this server-only environment variable in every backend environment:

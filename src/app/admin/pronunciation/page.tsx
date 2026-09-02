@@ -105,19 +105,34 @@ export default function PronunciationAdminPage() {
 
   function editLesson(lesson: Lesson) {
     setTranslations([]);
-    setEditor({ ...lesson, pronunciation_exercises: lesson.pronunciation_exercises.map((exercise) => ({ ...exercise, meaning_en: exercise.meaning_en || '', example_en: exercise.example_en || '' })) });
+    const exercises = (lesson.pronunciation_exercises || []).map((exercise) => ({
+      ...exercise,
+      meaning_en: exercise.meaning_en || '',
+      example_en: exercise.example_en || '',
+      segments: Array.isArray(exercise.segments) ? exercise.segments : [],
+    }));
+    setEditor({
+      ...lesson,
+      pronunciation_exercises: exercises.length > 0 ? exercises : [blankExercise(1)],
+    });
+    if (lesson.id) void loadTranslations(lesson.id);
   }
 
   async function saveLesson() {
     if (!editor) return;
     await action(async () => {
       const updating = Boolean(editor.id);
+      const exercises = editor.pronunciation_exercises || [];
+      const payload = {
+        ...editor,
+        exercises,
+      };
       const result = await api('/api/super/pronunciation/lessons', {
         method: updating ? 'PUT' : 'POST',
-        body: JSON.stringify(editor),
+        body: JSON.stringify(payload),
       });
       await load();
-      if (!updating) editLesson(result.lesson);
+      if (!updating && result.lesson) editLesson(result.lesson);
     }, 'Lesson saved as draft');
   }
 
@@ -145,6 +160,19 @@ export default function PronunciationAdminPage() {
       });
       setTranslations((items) => items.map((item) => item.id === translation.id ? { ...item, status: 'approved' } : item));
     }, 'Translation approved');
+  }
+
+  async function approveAllTranslations() {
+    if (!editor?.id || translations.length === 0) return;
+    await action(async () => {
+      await api(`/api/super/pronunciation/lessons/${editor.id}/translations`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          translations: translations.map((t) => ({ id: t.id, translated_text: t.translated_text, approved: true })),
+        }),
+      });
+      setTranslations((items) => items.map((item) => ({ ...item, status: 'approved' })));
+    }, 'All translations approved');
   }
 
   async function publishLesson() {
@@ -224,20 +252,23 @@ export default function PronunciationAdminPage() {
 
         {editor && <LessonEditor editor={editor} setEditor={setEditor} translations={translations} setTranslations={setTranslations} busy={busy}
           onSave={saveLesson} onGenerate={generateTranslations} onLoadTranslations={() => editor.id && loadTranslations(editor.id)}
-          onApprove={approveTranslation} onPublish={publishLesson} onUnpublish={unpublishLesson}
+          onApprove={approveTranslation} onApproveAll={approveAllTranslations} onPublish={publishLesson} onUnpublish={unpublishLesson}
           onDelete={() => editor.id && deleteLesson(editor.id)} />}
       </div>
     </main>
   );
 }
 
-function LessonEditor({ editor, setEditor, translations, setTranslations, busy, onSave, onGenerate, onLoadTranslations, onApprove, onPublish, onUnpublish, onDelete }: {
+function LessonEditor({ editor, setEditor, translations, setTranslations, busy, onSave, onGenerate, onLoadTranslations, onApprove, onApproveAll, onPublish, onUnpublish, onDelete }: {
   editor: Partial<Lesson>; setEditor: (value: Partial<Lesson>) => void; translations: Translation[]; setTranslations: (value: Translation[]) => void;
   busy: boolean; onSave: () => void; onGenerate: () => void; onLoadTranslations: () => void; onApprove: (value: Translation) => void;
-  onPublish: () => void; onUnpublish: () => void; onDelete: () => void;
+  onApproveAll: () => void; onPublish: () => void; onUnpublish: () => void; onDelete: () => void;
 }) {
   const exercises = editor.pronunciation_exercises || [];
   const updateExercise = (index: number, patch: Partial<Exercise>) => setEditor({ ...editor, pronunciation_exercises: exercises.map((exercise, position) => position === index ? { ...exercise, ...patch } : exercise) });
+  const approvedCount = translations.filter((t) => t.status === 'approved').length;
+  const allApproved = translations.length > 0 && approvedCount === translations.length;
+
   return <section className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
     <div className="flex flex-wrap justify-between gap-3"><div><h2 className="text-xl font-extrabold">{editor.id ? 'Edit lesson' : 'New lesson'}</h2><p className="text-xs text-slate-500">Published edits return the lesson to draft and stale its translations.</p></div>
       <div className="flex gap-2"><Action icon={<Save />} label="Save draft" onClick={onSave} disabled={busy} />{editor.id && (editor.status === 'published' ? <Action label="Unpublish" onClick={onUnpublish} disabled={busy} /> : <Action icon={<Send />} label="Publish" onClick={onPublish} disabled={busy} />)}</div>
@@ -252,8 +283,30 @@ function LessonEditor({ editor, setEditor, translations, setTranslations, busy, 
         {exercise.type === 'passage' && <textarea value={exercise.segments.join('\n')} onChange={(event) => updateExercise(index, { segments: event.target.value.split('\n').map((item) => item.trim()).filter(Boolean) })} placeholder="Recognition segments, one per line" className="input min-h-20" />}
       </div>)}
     </div>
-    {editor.id && <div className="border-t pt-5 space-y-4"><div className="flex flex-wrap gap-2"><Action icon={<Globe2 />} label="Generate translations" onClick={onGenerate} disabled={busy} /><Action icon={<RefreshCw />} label="Load review queue" onClick={onLoadTranslations} disabled={busy} /></div>
-      {translations.map((translation, index) => <div key={translation.id} className="grid md:grid-cols-[120px_1fr_auto] gap-3 items-center"><span className="text-xs font-bold">{translation.locale}<br /><span className={translation.status === 'approved' ? 'text-emerald-600' : 'text-amber-600'}>{translation.status}</span></span><textarea value={translation.translated_text} onChange={(event) => setTranslations(translations.map((item, position) => position === index ? { ...item, translated_text: event.target.value } : item))} className="input min-h-16" /><button onClick={() => onApprove(translation)} className="p-2 text-emerald-600" title="Approve"><Check className="w-5 h-5" /></button></div>)}
+    {editor.id && <div className="border-t pt-5 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Action icon={<Globe2 />} label="Generate translations" onClick={onGenerate} disabled={busy} />
+          <Action icon={<RefreshCw />} label="Load review queue" onClick={onLoadTranslations} disabled={busy} />
+          {translations.length > 0 && <Action icon={<Check />} label="Approve all" onClick={onApproveAll} disabled={busy} />}
+        </div>
+        {translations.length > 0 && (
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${allApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+            {approvedCount} / {translations.length} Approved
+          </span>
+        )}
+      </div>
+      {translations.map((translation, index) => <div key={translation.id} className="grid md:grid-cols-[140px_1fr_auto] gap-3 items-center p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+        <div className="space-y-0.5">
+          <span className="text-xs font-bold block">{translation.locale}</span>
+          <span className="text-[11px] text-slate-500 block truncate">{translation.entity_type}.{translation.field_name}</span>
+          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${translation.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{translation.status}</span>
+        </div>
+        <textarea value={translation.translated_text} onChange={(event) => setTranslations(translations.map((item, position) => position === index ? { ...item, translated_text: event.target.value } : item))} className="input min-h-16 bg-white" />
+        <button onClick={() => onApprove(translation)} className={`p-2.5 rounded-xl border transition-colors ${translation.status === 'approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-300'}`} title={translation.status === 'approved' ? 'Approved' : 'Click to approve'}>
+          <Check className="w-5 h-5" />
+        </button>
+      </div>)}
     </div>}
     {editor.id && editor.status !== 'published' && <div className="border-t pt-5"><button onClick={onDelete} className="text-xs font-bold text-rose-600 flex items-center gap-1"><Trash2 className="w-4 h-4" /> Delete draft lesson</button></div>}
   </section>;

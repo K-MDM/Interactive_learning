@@ -74,18 +74,32 @@ export async function PUT(
 ) {
   const auth = await authenticatePronunciationAdmin();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  await params;
+  const { id } = await params;
   const body = await request.json();
   if (!Array.isArray(body.translations) || body.translations.length === 0) {
     return NextResponse.json({ error: 'translations are required' }, { status: 400 });
   }
+
+  const { sources } = await getSources(auth.admin, id);
+  const sourceMap = new Map(sources.map((s) => [`${s.entityType}:${s.entityId}:${s.fieldName}`, s.value]));
+
+  const { data: existingTranslations } = await auth.admin.from('pronunciation_translations')
+    .select('id, entity_type, entity_id, field_name')
+    .in('id', body.translations.map((t: any) => t.id).filter(Boolean));
+  const existingMap = new Map((existingTranslations || []).map((t: any) => [t.id, t]));
+
   for (const item of body.translations) {
     if (!item.id || typeof item.translated_text !== 'string' || !item.translated_text.trim()) {
       return NextResponse.json({ error: 'Each translation requires id and translated_text' }, { status: 400 });
     }
+    const existing = existingMap.get(item.id);
+    const sourceText = existing ? sourceMap.get(`${existing.entity_type}:${existing.entity_id}:${existing.field_name}`) : null;
+    const sourceHash = sourceText ? pronunciationSourceHash(sourceText) : undefined;
+
     const { error } = await auth.admin.from('pronunciation_translations').update({
       translated_text: item.translated_text.trim(),
       status: item.approved === false ? 'pending_review' : 'approved',
+      ...(sourceHash ? { source_hash: sourceHash } : {}),
       reviewed_by: item.approved === false ? null : auth.user.id,
       reviewed_at: item.approved === false ? null : new Date().toISOString(),
       updated_at: new Date().toISOString(),
